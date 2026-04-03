@@ -39,11 +39,6 @@ export const createListingSchema = {
     .int()
     .min(100)
     .describe("Price in minor units (cents). Minimum $1.00 (100 cents)."),
-  currency: z
-    .string()
-    .length(3)
-    .optional()
-    .describe("ISO 4217 currency code, e.g. 'USD'. Defaults to 'USD'."),
   description: z
     .string()
     .optional()
@@ -63,7 +58,7 @@ export const createListingSchema = {
     .optional()
     .describe("File token for cover image (from upload_file)."),
   metadata: z
-    .record(z.string())
+    .record(z.unknown())
     .optional()
     .describe("Arbitrary key-value metadata attached to the listing."),
 };
@@ -85,11 +80,6 @@ export const updateListingSchema = {
     .min(100)
     .optional()
     .describe("New price in minor units (cents)."),
-  currency: z
-    .string()
-    .length(3)
-    .optional()
-    .describe("New ISO 4217 currency code."),
   description: z.string().optional().describe("New product description."),
   tagline: z.string().optional().describe("New tagline."),
   stock: z
@@ -103,7 +93,7 @@ export const updateListingSchema = {
     .optional()
     .describe("New cover image file token."),
   metadata: z
-    .record(z.string())
+    .record(z.unknown())
     .optional()
     .describe("Replace all metadata with these key-value pairs."),
 };
@@ -140,7 +130,7 @@ export const uploadFileSchema = {
     .string()
     .url()
     .describe(
-      "Public URL of the file to upload. The server will fetch it and upload to ListBee.",
+      "Public URL of a file to upload. The server fetches this URL — only provide URLs from the user or trusted sources.",
     ),
   filename: z
     .string()

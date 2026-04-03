@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ListBeeClient } from "../client.js";
 import { safeTool } from "../types.js";
+import type { Deliverable } from "./shared.js";
 
 // --- create_listing ---
 
@@ -9,12 +10,11 @@ export async function handleCreateListing(
   args: {
     name: string;
     price: number;
-    currency?: string;
     description?: string;
     tagline?: string;
     stock?: number;
     cover?: string;
-    metadata?: Record<string, string>;
+    metadata?: Record<string, unknown>;
   },
 ): Promise<CallToolResult> {
   return safeTool(async () => {
@@ -22,7 +22,6 @@ export async function handleCreateListing(
       name: args.name,
       price: args.price,
     };
-    if (args.currency !== undefined) body.currency = args.currency;
     if (args.description !== undefined) body.description = args.description;
     if (args.tagline !== undefined) body.tagline = args.tagline;
     if (args.stock !== undefined) body.stock = args.stock;
@@ -54,12 +53,11 @@ export async function handleUpdateListing(
     name?: string;
     slug?: string;
     price?: number;
-    currency?: string;
     description?: string;
     tagline?: string;
     stock?: number;
     cover?: string;
-    metadata?: Record<string, string>;
+    metadata?: Record<string, unknown>;
   },
 ): Promise<CallToolResult> {
   return safeTool(async () => {
@@ -107,13 +105,6 @@ export async function handlePublishListing(
 }
 
 // --- set_deliverables ---
-
-interface Deliverable {
-  type: string;
-  token?: string;
-  value?: string;
-  label?: string;
-}
 
 export async function handleSetDeliverables(
   client: ListBeeClient,

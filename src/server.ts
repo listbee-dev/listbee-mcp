@@ -69,7 +69,14 @@ function annotationsFor(name: string): ToolAnnotations {
       openWorldHint: false,
     };
   }
-  // create, publish, upload, stripe connect
+  if (name === "upload_file") {
+    return {
+      readOnlyHint: false,
+      destructiveHint: false,
+      openWorldHint: true,
+    };
+  }
+  // create, publish, stripe connect
   return {
     readOnlyHint: false,
     destructiveHint: false,

@@ -1,5 +1,12 @@
 import type { ToolMeta } from "../manifest.js";
 
+export interface Deliverable {
+  type: string;
+  token?: string;
+  value?: string;
+  label?: string;
+}
+
 /**
  * Auto-generate a human-readable title from a snake_case tool name.
  * e.g. "create_listing" → "Create Listing"
@@ -27,7 +34,7 @@ export function buildDescription(meta: ToolMeta): string {
   }
 
   if (meta.hints && meta.hints.length > 0) {
-    parts.push(meta.hints.map((h) => `- ${h}`).join("\n"));
+    parts.push(`**Tips:**\n${meta.hints.map((h) => `- ${h}`).join("\n")}`);
   }
 
   if (meta.requires_human) {

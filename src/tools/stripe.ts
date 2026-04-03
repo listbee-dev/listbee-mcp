@@ -13,7 +13,7 @@ export async function handleStartStripeConnect(
       "/v1/account/stripe/connect",
     );
 
-    const url = data.url ?? data.onboarding_url ?? "(see response)";
+    const url = (data as { url: string }).url;
 
     return {
       content: [

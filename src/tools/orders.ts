@@ -1,6 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ListBeeClient } from "../client.js";
 import { safeTool } from "../types.js";
+import type { Deliverable } from "./shared.js";
 
 // --- list_orders ---
 
@@ -30,13 +31,6 @@ export async function handleGetOrder(
 }
 
 // --- deliver_order ---
-
-interface Deliverable {
-  type: string;
-  token?: string;
-  value?: string;
-  label?: string;
-}
 
 export async function handleDeliverOrder(
   client: ListBeeClient,

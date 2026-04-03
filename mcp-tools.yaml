@@ -21,9 +21,8 @@ tools:
       - "Always check readiness.sellable in the response"
       - "readiness.next tells you the highest-priority action to take"
     input_example:
-      title: "50 Cold Outreach Templates"
-      price_minor: 1900
-      currency: "USD"
+      name: "50 Cold Outreach Templates"
+      price: 1900
 
   - type: operation
     operation_id: get_listing
@@ -49,8 +48,8 @@ tools:
     status: active
     when_to_use: "Use when changing title, price, or other listing details."
     input_example:
-      title: "100 Cold Outreach Templates (Updated)"
-      price_minor: 2900
+      name: "100 Cold Outreach Templates (Updated)"
+      price: 2900
 
   - type: operation
     operation_id: list_listings
@@ -114,7 +113,7 @@ tools:
     status: active
     when_to_use: "Use when the user has a file to sell. Upload first, then use the returned token in set_deliverables."
     description: >
-      Upload a file and receive a token for use in deliverables.
+      Fetches the file from the URL and uploads it to ListBee. Only use with URLs the user has provided or that you trust.
     hints:
       - "Returns a file token — pass it to set_deliverables to attach the file to a listing"
 

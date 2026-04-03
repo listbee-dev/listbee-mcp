@@ -114,7 +114,7 @@ async function main(): Promise<void> {
   const { config } = result;
 
   console.error("Starting ListBee MCP server...");
-  if (config.toolFilter) {
+  if (config.toolFilter && config.toolFilter.size > 0) {
     console.error(`  Tool filter: ${[...config.toolFilter].join(", ")}`);
   }
 

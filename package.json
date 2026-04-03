@@ -18,7 +18,6 @@
     "build": "tsc && chmod +x dist/index.js",
     "dev": "tsc --watch",
     "lint": "tsc --noEmit",
-    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
