@@ -1,0 +1,44 @@
+{
+  "name": "listbee-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for ListBee — commerce API for AI agents",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "listbee-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "mcp-tools.yaml"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/listbee-dev/listbee-mcp.git"
+  },
+  "homepage": "https://listbee.so",
+  "keywords": [
+    "mcp",
+    "listbee",
+    "commerce",
+    "ai-agents",
+    "model-context-protocol"
+  ]
+}

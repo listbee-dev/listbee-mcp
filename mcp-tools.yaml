@@ -1,0 +1,171 @@
+version: 1
+
+# Priority scale:
+#   10    = golden-path / core workflow
+#   7-9   = common operations
+#   4-6   = situational
+#   1-3   = rare / cleanup
+
+tools:
+  # --- Listings ---
+  - type: operation
+    operation_id: create_listing
+    name: create_listing
+    category: listings
+    priority: 10
+    status: active
+    when_to_use: "Use when the user wants to sell something new."
+    description: >
+      Create a new listing for sale. Returns a checkout URL and readiness status.
+    hints:
+      - "Always check readiness.sellable in the response"
+      - "readiness.next tells you the highest-priority action to take"
+    input_example:
+      title: "50 Cold Outreach Templates"
+      price_minor: 1900
+      currency: "USD"
+
+  - type: operation
+    operation_id: get_listing
+    name: get_listing
+    category: listings
+    priority: 9
+    status: active
+    when_to_use: "Use after any mutation (create, update, set_deliverables) to inspect readiness and determine what to do next."
+    description: >
+      Get a listing's full state including readiness. This is the readiness
+      inspection tool — call it after every change to check what's needed.
+    hints:
+      - "This is how you check readiness — call it after every create/update"
+      - "readiness.sellable tells you if the listing is live"
+      - "readiness.actions lists what's missing, with kind (api/human) and resolve details"
+      - "readiness.next points to the highest-priority action"
+
+  - type: operation
+    operation_id: update_listing
+    name: update_listing
+    category: listings
+    priority: 9
+    status: active
+    when_to_use: "Use when changing title, price, or other listing details."
+    input_example:
+      title: "100 Cold Outreach Templates (Updated)"
+      price_minor: 2900
+
+  - type: operation
+    operation_id: list_listings
+    name: list_listings
+    category: listings
+    priority: 7
+    status: active
+    when_to_use: "Use to see all listings for the current account."
+
+  - type: operation
+    operation_id: publish_listing
+    name: publish_listing
+    category: listings
+    priority: 10
+    status: active
+    when_to_use: "Use when the user wants the listing to go live and readiness indicates it can be published."
+    description: >
+      Publish a listing so buyers can access the product page.
+      Only works when readiness.publishable is true.
+    hints:
+      - "Check readiness first — this fails if listing is not publishable"
+
+  - type: operation
+    operation_id: set_deliverables
+    name: set_deliverables
+    category: listings
+    priority: 9
+    status: active
+    when_to_use: "Use after creating a listing to attach digital content for automatic delivery."
+    description: >
+      Set digital deliverables (files, URLs, or text) on a listing.
+      Required for managed fulfillment mode.
+    input_example:
+      deliverables:
+        - type: "url"
+          value: "https://example.com/templates.zip"
+          label: "Download link"
+
+  - type: operation
+    operation_id: remove_deliverables
+    name: remove_deliverables
+    category: listings
+    priority: 3
+    status: active
+    when_to_use: "Use when switching a listing from managed to external fulfillment."
+
+  - type: operation
+    operation_id: delete_listing
+    name: delete_listing
+    category: listings
+    priority: 2
+    status: active
+    when_to_use: "Use when the user wants to permanently remove a listing."
+
+  # --- Files ---
+  - type: operation
+    operation_id: upload_file
+    name: upload_file
+    category: files
+    priority: 8
+    status: active
+    when_to_use: "Use when the user has a file to sell. Upload first, then use the returned token in set_deliverables."
+    description: >
+      Upload a file and receive a token for use in deliverables.
+    hints:
+      - "Returns a file token — pass it to set_deliverables to attach the file to a listing"
+
+  # --- Orders ---
+  - type: operation
+    operation_id: list_orders
+    name: list_orders
+    category: orders
+    priority: 7
+    status: active
+    when_to_use: "Use when the user wants to see their sales or check order status."
+
+  - type: operation
+    operation_id: get_order
+    name: get_order
+    category: orders
+    priority: 6
+    status: active
+    when_to_use: "Use to get full details of a specific order including buyer info and payment."
+
+  - type: operation
+    operation_id: deliver_order
+    name: deliver_order
+    category: orders
+    priority: 8
+    status: active
+    when_to_use: "Use only for external fulfillment orders when content must be sent after purchase by your app or workflow."
+    description: >
+      Push digital content to a buyer for an external fulfillment order.
+      Not needed for managed delivery — ListBee handles that automatically.
+
+  # --- Stripe ---
+  - type: operation
+    operation_id: start_stripe_connect
+    name: start_stripe_connect
+    category: stripe
+    priority: 10
+    status: active
+    requires_human: true
+    when_to_use: "Use when readiness says Stripe is not connected. Returns a URL the human must visit."
+    description: >
+      Start Stripe Connect onboarding. Returns a URL for the human to complete
+      in a browser. Required before selling through Stripe.
+    hints:
+      - "You cannot complete this — the human must open the URL"
+      - "After the human completes onboarding, check readiness again"
+
+  # --- Future composite tools (v2+) ---
+  # - type: composite
+  #   name: create_and_publish
+  #   category: workflows
+  #   priority: 10
+  #   steps: [create_listing, set_deliverables, publish_listing]
+  #   when_to_use: "Use for one-shot listing creation when all details are ready."
