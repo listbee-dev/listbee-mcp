@@ -1,12 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import type { ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import type { AnySchema } from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import { z } from "zod";
 
 import { ListBeeClient } from "./client.js";
-import { loadManifest, indexManifest, type ToolMeta } from "./manifest.js";
+import { loadManifest, indexManifest } from "./manifest.js";
 import { autoTitle, buildDescription } from "./tools/shared.js";
 
-import * as schemas from "./schemas.js";
+import { schemas } from "./generated/schemas.js";
 import {
   handleCreateListing,
   handleGetListing,
@@ -84,23 +85,24 @@ function annotationsFor(name: string): ToolAnnotations {
   };
 }
 
+// Manual override for upload_file: the API uses multipart upload but the MCP tool
+// takes a URL + filename and handles the fetch-and-upload server-side.
+const uploadFileSchema = z.object({
+  url: z.string().url().describe(
+    "Public URL of a file to upload. The server fetches this URL — only provide URLs from the user or trusted sources.",
+  ),
+  filename: z.string().optional().describe(
+    "Filename for the uploaded file. If omitted, derived from the URL.",
+  ),
+});
+
 /**
- * Schema map — links tool names to their Zod input shapes.
+ * Schema map — links tool names to their Zod input schemas (or null for no-input tools).
+ * Derived from generated schemas with manual overrides where needed.
  */
-const schemaMap: Record<string, ZodRawShapeCompat | undefined> = {
-  create_listing: schemas.createListingSchema,
-  get_listing: schemas.getListingSchema,
-  update_listing: schemas.updateListingSchema,
-  list_listings: schemas.listListingsSchema,
-  publish_listing: schemas.publishListingSchema,
-  set_deliverables: schemas.setDeliverablesSchema,
-  remove_deliverables: schemas.removeDeliverablesSchema,
-  delete_listing: schemas.deleteListingSchema,
-  upload_file: schemas.uploadFileSchema,
-  list_orders: schemas.listOrdersSchema,
-  get_order: schemas.getOrderSchema,
-  deliver_order: schemas.deliverOrderSchema,
-  start_stripe_connect: undefined, // no input
+const schemaMap: Record<string, AnySchema | null> = {
+  ...schemas,
+  upload_file: uploadFileSchema,
 };
 
 /**
@@ -181,16 +183,18 @@ export function createServer(options: CreateServerOptions): McpServer {
       continue;
     }
 
-    if (schema) {
-      server.tool(toolName, description, schema, annotations, async (args) => {
-        return await handler(args as Record<string, unknown>);
-      });
-    } else {
-      // No input schema (e.g. start_stripe_connect)
-      server.tool(toolName, description, annotations, async () => {
-        return await handler({});
-      });
-    }
+    server.registerTool(
+      toolName,
+      {
+        description,
+        annotations,
+        ...(schema ? { inputSchema: schema } : {}),
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async (args: any) => {
+        return await handler((args ?? {}) as Record<string, unknown>);
+      },
+    );
 
     console.error(`  Registered tool: ${title} (${toolName})`);
   }
