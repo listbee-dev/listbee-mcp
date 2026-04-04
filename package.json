@@ -15,9 +15,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/index.js",
-    "dev": "tsc --watch",
-    "lint": "tsc --noEmit",
+    "generate": "tsx scripts/generate.ts",
+    "generate:check": "tsx scripts/generate.ts --check",
+    "build": "npm run generate && tsc && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "npm run generate:check && tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -27,6 +29,8 @@
   },
   "devDependencies": {
     "@types/node": "22.19.17",
+    "json-schema-to-zod": "^2.8.1",
+    "tsx": "^4.21.0",
     "typescript": "5.9.3"
   },
   "repository": {
