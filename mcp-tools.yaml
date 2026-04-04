@@ -145,6 +145,24 @@ tools:
       Push digital content to a buyer for an external fulfillment order.
       Not needed for managed delivery — ListBee handles that automatically.
 
+  - type: operation
+    operation_id: ship_order
+    name: ship_order
+    category: orders
+    priority: 7
+    status: active
+    when_to_use: "Use when a physical order needs shipping info recorded. Only for external fulfillment orders with physical goods."
+    description: >
+      Record shipping info (carrier + tracking code) and transition order to FULFILLED.
+      Only valid for external fulfillment orders. Idempotent with same tracking code.
+    hints:
+      - "Only works on orders in PAID state for EXTERNAL fulfillment listings"
+      - "Fires order.fulfilled webhook with shipping details"
+    input_example:
+      order_id: "ord_9xM4kP7nR2qT5wY1"
+      carrier: "USPS"
+      tracking_code: "9400111899223"
+
   # --- Stripe ---
   - type: operation
     operation_id: start_stripe_connect

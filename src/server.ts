@@ -22,6 +22,7 @@ import {
   handleListOrders,
   handleGetOrder,
   handleDeliverOrder,
+  handleShipOrder,
 } from "./tools/orders.js";
 import { handleUploadFile } from "./tools/files.js";
 import { handleStartStripeConnect } from "./tools/stripe.js";
@@ -62,7 +63,7 @@ function annotationsFor(name: string): ToolAnnotations {
       openWorldHint: false,
     };
   }
-  if (name.startsWith("update_") || name === "set_deliverables") {
+  if (name.startsWith("update_") || name === "set_deliverables" || name === "ship_order") {
     return {
       readOnlyHint: false,
       destructiveHint: false,
@@ -129,6 +130,7 @@ function getHandler(
     list_orders: handleListOrders,
     get_order: handleGetOrder,
     deliver_order: handleDeliverOrder,
+    ship_order: (c, a) => handleShipOrder(c, a),
   };
 
   const handler = handlers[name];

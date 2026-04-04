@@ -45,3 +45,21 @@ export async function handleDeliverOrder(
     return data;
   });
 }
+
+// --- ship_order ---
+
+export async function handleShipOrder(
+  client: ListBeeClient,
+  args: Record<string, unknown>,
+): Promise<CallToolResult> {
+  return safeTool(async () => {
+    const { order_id, ...rest } = args;
+    const body: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined) {
+        body[key] = value;
+      }
+    }
+    return await client.request("POST", `/v1/orders/${order_id}/ship`, body);
+  });
+}

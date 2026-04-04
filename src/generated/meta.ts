@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-04T06:44:34.136Z
-// sha256: 139655db37d77f94d62bdc79abcf70ccb16f17418e7b375102c53a1b03810b5e
+// generated_at: 2026-04-04T06:46:57.534Z
+// sha256: ee6f36c905b901043775ebb7410bdfb2124769831b2c4b79ee05a7b702ff8b94
 
 export interface ToolMeta {
   operationId: string;
@@ -72,6 +72,12 @@ export const meta: Record<string, ToolMeta> = {
     method: "PUT",
     path: "/v1/listings/{listing_id}/deliverables",
     description: "Set digital deliverables (files, URLs, or text) on a listing. Required for managed fulfillment mode.",
+  },
+  ship_order: {
+    operationId: "ship_order",
+    method: "POST",
+    path: "/v1/orders/{order_id}/ship",
+    description: "Record shipping info (carrier + tracking code) and transition order to FULFILLED. Only valid for external fulfillment orders. Idempotent with same tracking code.",
   },
   start_stripe_connect: {
     operationId: "start_stripe_connect",
