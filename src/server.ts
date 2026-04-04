@@ -109,38 +109,33 @@ const schemaMap: Record<string, AnySchema | null> = {
 /**
  * Handler map — links tool names to their handler functions.
  */
+const handlers: Record<
+  string,
+  (client: ListBeeClient, args: any) => Promise<CallToolResult>
+> = {
+  create_listing: handleCreateListing,
+  get_listing: handleGetListing,
+  update_listing: handleUpdateListing,
+  list_listings: handleListListings,
+  publish_listing: handlePublishListing,
+  set_deliverables: handleSetDeliverables,
+  remove_deliverables: handleRemoveDeliverables,
+  delete_listing: handleDeleteListing,
+  upload_file: handleUploadFile,
+  list_orders: handleListOrders,
+  get_order: handleGetOrder,
+  deliver_order: handleDeliverOrder,
+  ship_order: (c, a) => handleShipOrder(c, a),
+  start_stripe_connect: (c) => handleStartStripeConnect(c) as any,
+};
+
 function getHandler(
   name: string,
   client: ListBeeClient,
 ): ((args: Record<string, unknown>) => Promise<CallToolResult>) | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handlers: Record<
-    string,
-    (client: ListBeeClient, args: any) => Promise<CallToolResult>
-  > = {
-    create_listing: handleCreateListing,
-    get_listing: handleGetListing,
-    update_listing: handleUpdateListing,
-    list_listings: handleListListings,
-    publish_listing: handlePublishListing,
-    set_deliverables: handleSetDeliverables,
-    remove_deliverables: handleRemoveDeliverables,
-    delete_listing: handleDeleteListing,
-    upload_file: handleUploadFile,
-    list_orders: handleListOrders,
-    get_order: handleGetOrder,
-    deliver_order: handleDeliverOrder,
-    ship_order: (c, a) => handleShipOrder(c, a),
-  };
-
   const handler = handlers[name];
   if (handler) {
     return (args) => handler(client, args);
-  }
-
-  // Special case: start_stripe_connect takes no args
-  if (name === "start_stripe_connect") {
-    return () => handleStartStripeConnect(client);
   }
 
   return undefined;
@@ -199,6 +194,22 @@ export function createServer(options: CreateServerOptions): McpServer {
     );
 
     console.error(`  Registered tool: ${title} (${toolName})`);
+  }
+
+  // Startup validation: every manifest tool must be fully wired
+  for (const tool of allTools) {
+    const name = tool.name;
+    if (!handlers[name]) {
+      throw new Error(
+        `Startup validation failed: tool "${name}" has no handler registered`,
+      );
+    }
+    const ann = annotationsFor(name);
+    if (ann.readOnlyHint === undefined) {
+      throw new Error(
+        `Startup validation failed: tool "${name}" is missing readOnlyHint annotation`,
+      );
+    }
   }
 
   return server;
