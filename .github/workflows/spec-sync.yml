@@ -20,8 +20,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Fetch fresh OpenAPI spec
-        run: curl -sf https://api.listbee.so/openapi.json -o openapi.json
+      - name: Fetch fresh OpenAPI spec and manifest
+        run: |
+          curl -sf https://api.listbee.so/openapi.json -o openapi.json
+          curl -sf https://raw.githubusercontent.com/listbee-dev/listbee/main/app/mcp-tools.yaml -o mcp-tools.yaml
 
       - name: Regenerate schemas
         run: npm run generate
@@ -42,10 +44,10 @@ jobs:
         run: |
           BRANCH="auto/spec-sync-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$BRANCH"
-          git add openapi.json src/generated/
+          git add openapi.json mcp-tools.yaml src/generated/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: sync openapi.json and regenerate schemas"
+          git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas"
           git push origin "$BRANCH"
           gh pr create \
             --title "API spec updated — regenerated schemas" \
