@@ -127,7 +127,7 @@ tools:
     status: active
     when_to_use: "Use when the user has a file to sell. Upload first, then use the returned token in set_deliverables."
     description: >
-      Fetches the file from the URL and uploads it to ListBee. Only use with URLs the user has provided or that you trust.
+      Upload a file and receive a token for use in deliverables.
     hints:
       - "Returns a file token — pass it to set_deliverables to attach the file to a listing"
 
@@ -177,6 +177,156 @@ tools:
       carrier: "USPS"
       tracking_code: "9400111899223"
 
+  - type: operation
+    operation_id: refund_order
+    name: refund_order
+    category: orders
+    priority: 6
+    status: active
+    when_to_use: "When a buyer requests a refund or the seller needs to reverse a charge. Only works on paid or fulfilled orders."
+    description: >
+      Issue a full refund for an order. Refund is processed through Stripe on the
+      seller's connected account. Idempotent — already-refunded orders return as-is.
+      Order state (refund_amount, refunded_at) updates asynchronously via Stripe webhook.
+    hints:
+      - "Only works on orders in PAID or FULFILLED status"
+      - "Already-refunded orders return 200 with no action (idempotent)"
+      - "Fires order.refunded webhook after Stripe processes the refund"
+    input_example:
+      order_id: "ord_9xM4kP7nR2qT5wY1"
+
+  # --- Customers ---
+  - type: operation
+    operation_id: list_customers
+    name: list_customers
+    category: customers
+    priority: 7
+    status: active
+    when_to_use: "When the agent needs buyer email addresses for marketing, wants to analyze purchasing patterns, or needs to identify repeat customers."
+    description: >
+      List all customers (buyers) who have purchased from the seller. Auto-populated
+      from orders — no manual creation needed. Sorted by most recent purchase first.
+      Filter by email for exact match lookup.
+    hints:
+      - "Customers are auto-created on first order — read-only, no create/delete"
+      - "Use email filter to look up a specific buyer"
+      - "total_spent is in cents (smallest currency unit)"
+
+  - type: operation
+    operation_id: get_customer
+    name: get_customer
+    category: customers
+    priority: 6
+    status: active
+    when_to_use: "When the agent needs purchase history details for a specific buyer."
+    description: >
+      Get a customer by ID. Shows total orders, total spent, currency, and purchase dates.
+      Customers represent unique buyer emails that have purchased from the seller.
+    hints:
+      - "Use list_customers with email filter if you have the email but not the ID"
+
+  # --- Account ---
+  - type: operation
+    operation_id: get_account
+    name: get_account
+    category: account
+    priority: 8
+    status: active
+    when_to_use: "Use to check account status, readiness, billing, Stripe connection, and profile details."
+    description: >
+      Get the authenticated account's full state including readiness and billing status.
+      This is the first call an agent should make to understand what's set up.
+    hints:
+      - "Call this first to understand account state"
+      - "readiness.operational tells you if the account can sell"
+      - "Check payment_config to see if Stripe is connected"
+
+  - type: operation
+    operation_id: update_account
+    name: update_account
+    category: account
+    priority: 5
+    status: active
+    when_to_use: "Use to update account profile — display name, bio, avatar."
+    description: >
+      Update the account's display name, bio, or avatar. These appear on product pages
+      as the seller identity.
+
+  - type: operation
+    operation_id: delete_account
+    name: delete_account
+    category: account
+    priority: 1
+    status: active
+    when_to_use: "Use only when the user explicitly wants to permanently delete their account."
+    description: >
+      Permanently delete the account and all associated data. This is irreversible.
+    hints:
+      - "This is destructive and irreversible — confirm with the user first"
+
+  - type: operation
+    operation_id: create_account
+    name: create_account
+    category: account
+    priority: 10
+    status: active
+    when_to_use: "Use when a new user wants to sign up. First step in the onboarding flow."
+    description: >
+      Create a new ListBee account with an email address. Sends an OTP code to the email
+      for verification. Follow up with verify_otp to complete signup and get an API key.
+    hints:
+      - "This sends an OTP email — the user must provide the code"
+      - "After create_account, call verify_otp with the code"
+
+  - type: operation
+    operation_id: verify_otp
+    name: verify_otp
+    category: account
+    priority: 10
+    status: active
+    when_to_use: "Use after create_account to verify the email OTP code and complete signup."
+    description: >
+      Verify the OTP code sent to the user's email during account creation.
+      Returns an API key on success — store it securely for all future API calls.
+    hints:
+      - "The user must provide the OTP code from their email"
+      - "On success, returns an API key (lb_ prefixed) — this is the only time it's shown"
+
+  # --- API Keys ---
+  - type: operation
+    operation_id: list_api_keys
+    name: list_api_keys
+    category: api_keys
+    priority: 4
+    status: active
+    when_to_use: "Use to see all API keys for the account."
+    description: >
+      List all API keys. Shows key prefixes and names but not full key values
+      (those are only shown at creation time).
+
+  - type: operation
+    operation_id: create_api_key
+    name: create_api_key
+    category: api_keys
+    priority: 4
+    status: active
+    when_to_use: "Use when the user needs a new API key, e.g. for a separate agent or integration."
+    description: >
+      Create a new API key. The full key value (lb_ prefixed) is returned only once —
+      store it securely. Each key can have a name for identification.
+    hints:
+      - "The full key is only shown once at creation — store it immediately"
+
+  - type: operation
+    operation_id: delete_api_key
+    name: delete_api_key
+    category: api_keys
+    priority: 2
+    status: active
+    when_to_use: "Use to revoke an API key that is no longer needed or compromised."
+    description: >
+      Delete an API key. The key is immediately revoked and cannot be used again.
+
   # --- Stripe ---
   - type: operation
     operation_id: start_stripe_connect
@@ -192,6 +342,96 @@ tools:
     hints:
       - "You cannot complete this — the human must open the URL"
       - "After the human completes onboarding, check readiness again"
+
+  - type: operation
+    operation_id: disconnect_stripe
+    name: disconnect_stripe
+    category: stripe
+    priority: 2
+    status: active
+    when_to_use: "Use when the user wants to disconnect their Stripe account."
+    description: >
+      Disconnect the Stripe account from ListBee. Existing listings retain their
+      payment snapshot but new checkouts will fail.
+    hints:
+      - "This doesn't delete the Stripe account — just disconnects it from ListBee"
+
+  # --- Webhooks ---
+  - type: operation
+    operation_id: list_webhooks
+    name: list_webhooks
+    category: webhooks
+    priority: 7
+    status: active
+    when_to_use: "Use to see configured webhooks and their delivery status."
+    description: >
+      List all webhooks for the account. Shows URL, events filter, and enabled status.
+
+  - type: operation
+    operation_id: create_webhook
+    name: create_webhook
+    category: webhooks
+    priority: 8
+    status: active
+    when_to_use: "Use when the user needs to receive order notifications at a URL. Required for external fulfillment."
+    description: >
+      Create a webhook endpoint. Specify the URL and which events to receive.
+      The webhook secret (whsec_ prefixed) is returned for signature verification.
+    hints:
+      - "Required for external fulfillment listings — readiness checks for this"
+      - "Common events: order.paid, order.fulfilled, order.refunded"
+      - "The secret is only shown once at creation"
+    input_example:
+      url: "https://your-server.com/webhooks"
+      events: ["order.paid", "order.fulfilled"]
+
+  - type: operation
+    operation_id: update_webhook
+    name: update_webhook
+    category: webhooks
+    priority: 5
+    status: active
+    when_to_use: "Use to change a webhook's URL, events filter, or enabled status."
+
+  - type: operation
+    operation_id: delete_webhook
+    name: delete_webhook
+    category: webhooks
+    priority: 3
+    status: active
+    when_to_use: "Use to remove a webhook endpoint."
+
+  - type: operation
+    operation_id: list_webhook_events
+    name: list_webhook_events
+    category: webhooks
+    priority: 5
+    status: active
+    when_to_use: "Use to check webhook delivery history — see which events were sent and whether they succeeded."
+    description: >
+      List recent events for a webhook. Shows delivery status, attempts, and errors.
+      Useful for debugging failed deliveries.
+
+  - type: operation
+    operation_id: retry_webhook_event
+    name: retry_webhook_event
+    category: webhooks
+    priority: 4
+    status: active
+    when_to_use: "Use when a webhook delivery failed and needs to be retried."
+    description: >
+      Retry delivery of a failed webhook event. Resets attempt counter.
+
+  - type: operation
+    operation_id: test_webhook
+    name: test_webhook
+    category: webhooks
+    priority: 5
+    status: active
+    when_to_use: "Use to send a test event to a webhook URL to verify it's working."
+    description: >
+      Send a test event to the webhook URL. Returns the delivery result.
+      Use this to verify webhook configuration before going live.
 
   # --- Future composite tools (v2+) ---
   # - type: composite

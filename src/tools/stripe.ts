@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { ListBeeClient } from "../client.js";
-import { errorResult } from "../types.js";
+import { errorResult, safeTool } from "../types.js";
 
 // --- start_stripe_connect ---
 
@@ -27,4 +27,15 @@ export async function handleStartStripeConnect(
   } catch (err) {
     return errorResult(err);
   }
+}
+
+// --- disconnect_stripe ---
+
+export async function handleDisconnectStripe(
+  client: ListBeeClient,
+): Promise<CallToolResult> {
+  return safeTool(async () => {
+    await client.request("DELETE", "/v1/account/stripe");
+    return { success: true, message: "Stripe account disconnected." };
+  });
 }

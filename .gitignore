@@ -4,3 +4,4 @@ dist/
 .env
 .claude/
 CLAUDE.md
+SESSION_PROMPT.md

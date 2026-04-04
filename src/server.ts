@@ -23,9 +23,32 @@ import {
   handleGetOrder,
   handleDeliverOrder,
   handleShipOrder,
+  handleRefundOrder,
 } from "./tools/orders.js";
 import { handleUploadFile } from "./tools/files.js";
-import { handleStartStripeConnect } from "./tools/stripe.js";
+import { handleStartStripeConnect, handleDisconnectStripe } from "./tools/stripe.js";
+import { handleListCustomers, handleGetCustomer } from "./tools/customers.js";
+import {
+  handleGetAccount,
+  handleUpdateAccount,
+  handleDeleteAccount,
+  handleCreateAccount,
+  handleVerifyOtp,
+} from "./tools/account.js";
+import {
+  handleListApiKeys,
+  handleCreateApiKey,
+  handleDeleteApiKey,
+} from "./tools/api-keys.js";
+import {
+  handleListWebhooks,
+  handleCreateWebhook,
+  handleUpdateWebhook,
+  handleDeleteWebhook,
+  handleListWebhookEvents,
+  handleRetryWebhookEvent,
+  handleTestWebhook,
+} from "./tools/webhooks.js";
 
 // Read version from package.json
 import { readFileSync } from "node:fs";
@@ -56,7 +79,7 @@ function annotationsFor(name: string): ToolAnnotations {
   if (name.startsWith("get_") || name.startsWith("list_")) {
     return { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
   }
-  if (name.startsWith("delete_") || name === "remove_deliverables") {
+  if (name.startsWith("delete_") || name === "remove_deliverables" || name === "disconnect_stripe") {
     return {
       readOnlyHint: false,
       destructiveHint: true,
@@ -113,6 +136,7 @@ const handlers: Record<
   string,
   (client: ListBeeClient, args: any) => Promise<CallToolResult>
 > = {
+  // Listings
   create_listing: handleCreateListing,
   get_listing: handleGetListing,
   update_listing: handleUpdateListing,
@@ -121,12 +145,38 @@ const handlers: Record<
   set_deliverables: handleSetDeliverables,
   remove_deliverables: handleRemoveDeliverables,
   delete_listing: handleDeleteListing,
+  // Files
   upload_file: handleUploadFile,
+  // Orders
   list_orders: handleListOrders,
   get_order: handleGetOrder,
   deliver_order: handleDeliverOrder,
   ship_order: (c, a) => handleShipOrder(c, a),
+  refund_order: handleRefundOrder,
+  // Customers
+  list_customers: handleListCustomers,
+  get_customer: handleGetCustomer,
+  // Account
+  get_account: (c) => handleGetAccount(c) as any,
+  update_account: handleUpdateAccount,
+  delete_account: (c) => handleDeleteAccount(c) as any,
+  create_account: handleCreateAccount,
+  verify_otp: handleVerifyOtp,
+  // API Keys
+  list_api_keys: (c) => handleListApiKeys(c) as any,
+  create_api_key: handleCreateApiKey,
+  delete_api_key: handleDeleteApiKey,
+  // Stripe
   start_stripe_connect: (c) => handleStartStripeConnect(c) as any,
+  disconnect_stripe: (c) => handleDisconnectStripe(c) as any,
+  // Webhooks
+  list_webhooks: (c) => handleListWebhooks(c) as any,
+  create_webhook: handleCreateWebhook,
+  update_webhook: handleUpdateWebhook,
+  delete_webhook: handleDeleteWebhook,
+  list_webhook_events: handleListWebhookEvents,
+  retry_webhook_event: handleRetryWebhookEvent,
+  test_webhook: handleTestWebhook,
 };
 
 function getHandler(

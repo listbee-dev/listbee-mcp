@@ -46,6 +46,17 @@ export async function handleDeliverOrder(
   });
 }
 
+// --- refund_order ---
+
+export async function handleRefundOrder(
+  client: ListBeeClient,
+  args: { order_id: string },
+): Promise<CallToolResult> {
+  return safeTool(async () => {
+    return await client.request("POST", `/v1/orders/${args.order_id}/refund`);
+  });
+}
+
 // --- ship_order ---
 
 export async function handleShipOrder(
