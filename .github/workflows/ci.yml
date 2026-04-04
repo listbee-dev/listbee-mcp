@@ -18,3 +18,65 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  parity:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Compare tools/list across transports
+        run: |
+          # Start HTTP server in background
+          node dist/index.js --transport http --port 9876 &
+          HTTP_PID=$!
+          sleep 2
+
+          # Initialize HTTP session and get tools
+          INIT_RESP=$(curl -s -D /tmp/headers -X POST http://localhost:9876/mcp \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Authorization: Bearer lb_parity_test" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"parity","version":"0.1.0"}}}')
+          SESSION_ID=$(grep -i "mcp-session-id" /tmp/headers | awk '{print $2}' | tr -d '\r')
+
+          HTTP_TOOLS=$(curl -s -X POST http://localhost:9876/mcp \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -H "Authorization: Bearer lb_parity_test" \
+            -H "Mcp-Session-Id: $SESSION_ID" \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
+
+          kill $HTTP_PID 2>/dev/null || true
+
+          # Get tools via stdio
+          STDIO_TOOLS=$(echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"parity","version":"0.1.0"}}}
+          {"jsonrpc":"2.0","id":2,"method":"tools/list"}' | LISTBEE_API_KEY=lb_parity_test node dist/index.js 2>/dev/null | tail -1)
+
+          # Sort and compare tool definitions
+          HTTP_SORTED=$(echo "$HTTP_TOOLS" | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            const r=JSON.parse(d);
+            const tools=(r.result?.tools||[]).sort((a,b)=>a.name.localeCompare(b.name));
+            console.log(JSON.stringify(tools));
+          ")
+          STDIO_SORTED=$(echo "$STDIO_TOOLS" | node -e "
+            const d=require('fs').readFileSync('/dev/stdin','utf8');
+            const r=JSON.parse(d);
+            const tools=(r.result?.tools||[]).sort((a,b)=>a.name.localeCompare(b.name));
+            console.log(JSON.stringify(tools));
+          ")
+
+          if [ "$HTTP_SORTED" = "$STDIO_SORTED" ]; then
+            echo "✓ Transport parity check passed"
+          else
+            echo "✗ Transport parity check FAILED"
+            echo "HTTP tool count: $(echo "$HTTP_SORTED" | node -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).length)")"
+            echo "STDIO tool count: $(echo "$STDIO_SORTED" | node -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).length)")"
+            exit 1
+          fi
