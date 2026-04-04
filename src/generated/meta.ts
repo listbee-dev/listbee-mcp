@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-04T06:46:57.534Z
-// sha256: ee6f36c905b901043775ebb7410bdfb2124769831b2c4b79ee05a7b702ff8b94
+// generated_at: 2026-04-04T09:59:26.712Z
+// sha256: 7db8c2baed849a68e5badb23eb64f59ce38e2b6703046a99a5e586f8e432a8cb
 
 export interface ToolMeta {
   operationId: string;
@@ -17,7 +17,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "create_listing",
     method: "POST",
     path: "/v1/listings",
-    description: "Create a new listing for sale. Returns a checkout URL and readiness status.",
+    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields.",
   },
   delete_listing: {
     operationId: "delete_listing",
