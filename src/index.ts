@@ -1,136 +1,126 @@
 #!/usr/bin/env node
-
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createServer } from "./server.js";
-
-// --- CLI argument parsing ---
+import { runStdio } from "./transports/stdio.js";
 
 interface ParsedArgs {
+  transport: "stdio" | "http";
   apiKey?: string;
   baseUrl?: string;
-  tools?: string[];
+  port?: number;
+  tools?: string;
   help: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const result: ParsedArgs = { help: false };
-  const args = argv.slice(2); // skip node and script path
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === "--help" || arg === "-h") {
+  const result: ParsedArgs = { transport: "stdio", help: false };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--transport" && argv[i + 1]) {
+      const val = argv[++i];
+      if (val !== "stdio" && val !== "http") {
+        console.error(`Invalid transport: "${val}". Must be "stdio" or "http".`);
+        process.exit(1);
+      }
+      result.transport = val;
+    } else if (arg === "--api-key" && argv[i + 1]) {
+      result.apiKey = argv[++i];
+    } else if (arg === "--base-url" && argv[i + 1]) {
+      result.baseUrl = argv[++i];
+    } else if (arg === "--port" && argv[i + 1]) {
+      result.port = parseInt(argv[++i], 10);
+    } else if (arg === "--tools" && argv[i + 1]) {
+      result.tools = argv[++i];
+    } else if (arg === "--help" || arg === "-h") {
       result.help = true;
-    } else if (arg === "--api-key" && i + 1 < args.length) {
-      result.apiKey = args[++i];
-    } else if (arg === "--base-url" && i + 1 < args.length) {
-      result.baseUrl = args[++i];
-    } else if (arg === "--tools" && i + 1 < args.length) {
-      result.tools = args[++i].split(",").map((s) => s.trim()).filter(Boolean);
     }
   }
-
   return result;
 }
 
-// --- Config resolution ---
-
-interface Config {
+interface StdioResolvedConfig {
+  transport: "stdio";
   apiKey: string;
-  baseUrl?: string;
+  baseUrl: string;
   toolFilter?: Set<string>;
 }
 
-type ConfigResult =
-  | { ok: true; config: Config }
-  | { ok: false; error: string };
-
-function resolveConfig(parsed: ParsedArgs): ConfigResult {
-  const apiKey = parsed.apiKey ?? process.env.LISTBEE_API_KEY;
-  if (!apiKey) {
-    return {
-      ok: false,
-      error:
-        "API key required. Set LISTBEE_API_KEY environment variable or pass --api-key <key>.",
-    };
-  }
-
-  const baseUrl = parsed.baseUrl ?? process.env.LISTBEE_BASE_URL;
-  const toolFilter = parsed.tools ? new Set(parsed.tools) : undefined;
-
-  return { ok: true, config: { apiKey, baseUrl, toolFilter } };
+interface HttpResolvedConfig {
+  transport: "http";
+  baseUrl: string;
+  port: number;
+  toolFilter?: Set<string>;
 }
 
-// --- Help text ---
+type ResolvedConfig = StdioResolvedConfig | HttpResolvedConfig;
+
+function resolveConfig(
+  parsed: ParsedArgs,
+  env: Record<string, string | undefined>,
+): ResolvedConfig | string {
+  const baseUrl = parsed.baseUrl || env.LISTBEE_BASE_URL || "https://api.listbee.so";
+  const toolFilter = parsed.tools
+    ? new Set(parsed.tools.split(",").map((t) => t.trim()))
+    : undefined;
+
+  if (parsed.transport === "http") {
+    const port = parsed.port || parseInt(env.PORT || "8080", 10);
+    return { transport: "http", baseUrl, port, toolFilter };
+  }
+
+  const apiKey = parsed.apiKey || env.LISTBEE_API_KEY;
+  if (!apiKey) {
+    return "API key required. Use --api-key or set LISTBEE_API_KEY.";
+  }
+  return { transport: "stdio", apiKey, baseUrl, toolFilter };
+}
 
 const HELP_TEXT = `
 listbee-mcp — MCP server for ListBee commerce API
 
 Usage:
-  listbee-mcp [options]
+  npx listbee-mcp [options]
 
 Options:
-  --api-key <key>    ListBee API key (or set LISTBEE_API_KEY env var)
-  --base-url <url>   API base URL (default: https://api.listbee.so)
-  --tools <list>     Comma-separated tool names to expose (default: all)
-  -h, --help         Show this help text
+  --transport <stdio|http>  Transport mode (default: stdio)
+  --api-key <key>           API key (required for stdio, or set LISTBEE_API_KEY)
+  --base-url <url>          API base URL (default: https://api.listbee.so)
+  --port <number>           HTTP port (default: 8080, http mode only)
+  --tools <list>            Comma-separated tool names to expose
+  -h, --help                Show this help
+
+Transports:
+  stdio   Local mode for Claude Desktop, Cursor, Cline (default)
+  http    Streamable HTTP for ChatGPT Apps, Claude API Connector, remote agents
 
 Examples:
-  LISTBEE_API_KEY=lb_xxx listbee-mcp
-  listbee-mcp --api-key lb_xxx
-  listbee-mcp --api-key lb_xxx --tools create_listing,get_listing,publish_listing
-
-Claude Desktop config (claude_desktop_config.json):
-  {
-    "mcpServers": {
-      "listbee": {
-        "command": "npx",
-        "args": ["-y", "listbee-mcp"],
-        "env": { "LISTBEE_API_KEY": "lb_xxx" }
-      }
-    }
-  }
+  npx listbee-mcp --api-key lb_xxx
+  npx listbee-mcp --transport http --port 3000
+  LISTBEE_API_KEY=lb_xxx npx listbee-mcp
 `.trim();
 
-// --- Main ---
-
 async function main(): Promise<void> {
-  // Handle signals gracefully
-  process.on("SIGINT", () => process.exit(0));
-  process.on("SIGTERM", () => process.exit(0));
-
-  const parsed = parseArgs(process.argv);
+  const parsed = parseArgs(process.argv.slice(2));
 
   if (parsed.help) {
-    console.error(HELP_TEXT);
+    console.log(HELP_TEXT);
     process.exit(0);
   }
 
-  const result = resolveConfig(parsed);
-  if (!result.ok) {
-    console.error(`Error: ${result.error}`);
+  const config = resolveConfig(parsed, process.env);
+  if (typeof config === "string") {
+    console.error(config);
+    console.error("Run with --help for usage.");
     process.exit(1);
   }
 
-  const { config } = result;
-
-  console.error("Starting ListBee MCP server...");
-  if (config.toolFilter && config.toolFilter.size > 0) {
-    console.error(`  Tool filter: ${[...config.toolFilter].join(", ")}`);
+  if (config.transport === "http") {
+    const { runHttp } = await import("./transports/http.js");
+    await runHttp(config);
+  } else {
+    await runStdio(config);
   }
-
-  const server = createServer({
-    apiKey: config.apiKey,
-    baseUrl: config.baseUrl,
-    toolFilter: config.toolFilter,
-  });
-
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-
-  console.error("ListBee MCP server running on stdio.");
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  console.error("Fatal:", err);
   process.exit(1);
 });
