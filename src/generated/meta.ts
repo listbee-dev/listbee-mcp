@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-04T06:46:57.534Z
-// sha256: ee6f36c905b901043775ebb7410bdfb2124769831b2c4b79ee05a7b702ff8b94
+// generated_at: 2026-04-04T07:17:36.080Z
+// sha256: 0ec54ebc5406a69e3c578391e6b0a7e59cb009b38625d34bd287b51fa0c3aa52
 
 export interface ToolMeta {
   operationId: string;
@@ -65,7 +65,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "remove_deliverables",
     method: "DELETE",
     path: "/v1/listings/{listing_id}/deliverables",
-    description: "Remove all deliverables from a draft listing. Demotes the listing to external fulfillment. Draft only — returns 409 if the listing is published or paused.",
+    description: "Remove all deliverables from a draft listing. Demotes the listing to external fulfillment. Draft only — returns 409 if the listing is published.",
   },
   set_deliverables: {
     operationId: "set_deliverables",
