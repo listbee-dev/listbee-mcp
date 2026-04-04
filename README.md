@@ -91,6 +91,30 @@ npx listbee-mcp --api-key lb_...
 
 ---
 
+## Remote / HTTP Transport
+
+For hosted deployments (ChatGPT Apps, Claude API Connector, remote agents):
+
+```bash
+npx listbee-mcp --transport http --port 3000
+```
+
+Each connecting agent provides their API key via `Authorization: Bearer` header.
+
+### Docker
+
+```bash
+docker build -t listbee-mcp .
+docker run -p 8080:8080 listbee-mcp
+```
+
+### Health Checks
+
+- `GET /health` — basic liveness
+- `GET /ready` — confirms tools are loaded
+
+---
+
 ## Options
 
 | Flag | Env var | Default | Description |
