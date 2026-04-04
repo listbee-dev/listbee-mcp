@@ -103,6 +103,18 @@ export async function runHttp(config: HttpConfig): Promise<void> {
     });
   });
 
+  // Root — landing page instead of Express 404
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "ListBee MCP",
+      description: "Commerce API for AI agents",
+      endpoint: "/mcp",
+      transport: "streamable-http",
+      docs: "https://docs.listbee.so",
+      package: "npx listbee-mcp",
+    });
+  });
+
   // Health checks
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -114,8 +126,22 @@ export async function runHttp(config: HttpConfig): Promise<void> {
 
   startTtlSweep();
 
-  app.listen(config.port, "0.0.0.0", () => {
+  // Graceful shutdown
+  const server = app.listen(config.port, "0.0.0.0", () => {
     console.error(`ListBee MCP server (HTTP) listening on port ${config.port}`);
     console.error(`Endpoint: http://localhost:${config.port}/mcp`);
   });
+
+  const shutdown = () => {
+    console.error("\nShutting down...");
+    for (const [id, transport] of transports) {
+      transport.close();
+      transports.delete(id);
+      sessions.delete(id);
+    }
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000);
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
