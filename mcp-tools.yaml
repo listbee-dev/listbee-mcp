@@ -17,12 +17,26 @@ tools:
     when_to_use: "Use when the user wants to sell something new."
     description: >
       Create a new listing for sale. Returns a checkout URL and readiness status.
+      Only name and price are required — but listings with rich content convert
+      significantly better. Fill in as many fields as you can: description, tagline,
+      highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling
+      copy. The product page buyers see is built entirely from these fields.
     hints:
       - "Always check readiness.sellable in the response"
       - "readiness.next tells you the highest-priority action to take"
+      - "Only name + price are required, but fill in description, tagline, highlights, badges, reviews, faqs, cta for better conversions"
+      - "Write compelling, benefit-focused copy — this IS the product page buyers see"
+      - "checkout_schema and metadata are the only fields that don't appear on the product page"
     input_example:
       name: "50 Cold Outreach Templates"
       price: 1900
+      tagline: "Battle-tested templates that book meetings"
+      description: "50 proven cold outreach templates used by 500+ SDRs. Each template includes subject line, body, and follow-up sequence. Average 45% open rate."
+      highlights:
+        - "50 ready-to-send templates"
+        - "45% average open rate"
+        - "Follow-up sequences included"
+      cta: "Get the Templates"
 
   - type: operation
     operation_id: get_listing
