@@ -39,19 +39,72 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create PR
+      - name: Build change summary
+        if: steps.diff.outputs.changed == 'true'
+        id: summary
+        run: |
+          # Detect new/removed tools by comparing generated meta.ts
+          OLD_TOOLS=$(git show HEAD:src/generated/meta.ts 2>/dev/null | grep -oP '^\s+\K\w+(?=: \{)' | sort || true)
+          NEW_TOOLS=$(grep -oP '^\s+\K\w+(?=: \{)' src/generated/meta.ts | sort)
+
+          ADDED=$(comm -13 <(echo "$OLD_TOOLS") <(echo "$NEW_TOOLS") || true)
+          REMOVED=$(comm -23 <(echo "$OLD_TOOLS") <(echo "$NEW_TOOLS") || true)
+          TOOL_COUNT=$(echo "$NEW_TOOLS" | wc -l | tr -d ' ')
+
+          BODY="Automated spec sync after API deployment.\n\n"
+          BODY+="**Tools:** ${TOOL_COUNT} total"
+
+          if [ -n "$ADDED" ]; then
+            BODY+="\n\n**New tools:**\n"
+            while IFS= read -r t; do
+              BODY+="- \`${t}\`\n"
+            done <<< "$ADDED"
+            BODY+="\n> New tools need handlers in \`src/tools/\` and registration in \`src/server.ts\` before merging."
+          fi
+
+          if [ -n "$REMOVED" ]; then
+            BODY+="\n\n**Removed tools:**\n"
+            while IFS= read -r t; do
+              BODY+="- \`${t}\`\n"
+            done <<< "$REMOVED"
+          fi
+
+          if [ -z "$ADDED" ] && [ -z "$REMOVED" ]; then
+            BODY+="\n\nSchema-only changes (no new/removed tools). Safe to merge directly."
+          fi
+
+          printf "%s" "$BODY" > /tmp/pr-body.md
+
+      - name: Create or update PR
         if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="auto/spec-sync-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BRANCH"
-          git add openapi.json mcp-tools.yaml src/generated/
+          BRANCH="auto/spec-sync"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas"
-          git push origin "$BRANCH"
-          gh pr create \
-            --title "API spec updated — regenerated schemas" \
-            --body "Auto-generated after API deployment. Review the diff, then merge and tag to publish." \
-            --label "api-sync"
+
+          # Check if branch already exists on remote
+          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
+            git checkout -B "$BRANCH" "origin/$BRANCH"
+            git add openapi.json mcp-tools.yaml src/generated/
+            git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas" || true
+            git push origin "$BRANCH" --force-with-lease
+          else
+            git checkout -b "$BRANCH"
+            git add openapi.json mcp-tools.yaml src/generated/
+            git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas"
+            git push origin "$BRANCH"
+          fi
+
+          # Create PR if one doesn't exist yet, otherwise update body
+          EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            gh pr edit "$EXISTING_PR" --body-file /tmp/pr-body.md
+            echo "Updated existing PR #$EXISTING_PR"
+          else
+            gh pr create \
+              --title "API spec updated — regenerated schemas" \
+              --body-file /tmp/pr-body.md \
+              --label "api-sync"
+          fi
