@@ -337,6 +337,7 @@ function generate(spec: OpenApiSpec, manifest: ManifestFile): GeneratedTool[] {
 function makeHeader(openapiVersion: string, checksum: string): string {
   return [
     "// GENERATED FILE — DO NOT EDIT",
+    "// source: openapi.json + mcp-tools.yaml",
     "// Regenerate with: npm run generate",
     `// openapi_version: ${openapiVersion}`,
     `// generated_at: ${new Date().toISOString()}`,
