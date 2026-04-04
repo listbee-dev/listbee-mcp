@@ -21,11 +21,11 @@ jobs:
       - run: npm ci
 
       - name: Fetch fresh OpenAPI spec and manifest
-        env:
-          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
         run: |
           curl -sf https://api.listbee.so/openapi.json -o openapi.json
-          gh api repos/listbee-dev/listbee/contents/app/mcp-tools.yaml --jq '.content' | base64 -d > mcp-tools.yaml
+          curl -sf -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
+            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
+            | jq -r '.content' | base64 -d > mcp-tools.yaml
 
       - name: Regenerate schemas
         run: npm run generate
