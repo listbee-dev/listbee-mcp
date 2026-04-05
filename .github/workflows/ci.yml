@@ -49,8 +49,8 @@ jobs:
 
           # Count expected tools from generated meta
           EXPECTED=$(node -e "
-            const meta = require('./dist/generated/meta.js');
-            console.log(Object.keys(meta.operationMeta || meta.default?.operationMeta || {}).length);
+            const m = require('./dist/generated/meta.js');
+            console.log(Object.keys(m.meta || m.default?.meta || {}).length);
           ")
 
           echo "Registered tools: $TOOL_COUNT"
