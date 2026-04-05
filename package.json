@@ -42,8 +42,13 @@
   "homepage": "https://listbee.so",
   "keywords": [
     "mcp",
+    "mcp-server",
     "listbee",
     "commerce",
+    "ecommerce",
+    "payments",
+    "digital-products",
+    "checkout",
     "ai-agents",
     "model-context-protocol"
   ]
