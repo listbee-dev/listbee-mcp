@@ -40,14 +40,14 @@ jobs:
           # Initialize HTTP session and get tools
           INIT_RESP=$(curl -s -D /tmp/headers -X POST http://localhost:9876/mcp \
             -H "Content-Type: application/json" \
-            -H "Accept: application/json, text/event-stream" \
+            -H "Accept: application/json" \
             -H "Authorization: Bearer lb_parity_test" \
             -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"parity","version":"0.1.0"}}}')
           SESSION_ID=$(grep -i "mcp-session-id" /tmp/headers | awk '{print $2}' | tr -d '\r')
 
           HTTP_TOOLS=$(curl -s -X POST http://localhost:9876/mcp \
             -H "Content-Type: application/json" \
-            -H "Accept: application/json, text/event-stream" \
+            -H "Accept: application/json" \
             -H "Authorization: Bearer lb_parity_test" \
             -H "Mcp-Session-Id: $SESSION_ID" \
             -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
