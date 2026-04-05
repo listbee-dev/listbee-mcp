@@ -402,8 +402,15 @@ function renderMetaFile(tools: GeneratedTool[], header: string): string {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
-const openapiPath = resolve(repoRoot, "openapi.json");
-const manifestPath = resolve(repoRoot, "mcp-tools.yaml");
+const specArgIdx = process.argv.indexOf("--spec");
+const openapiPath = specArgIdx !== -1 && process.argv[specArgIdx + 1]
+  ? resolve(process.argv[specArgIdx + 1])
+  : resolve(repoRoot, "openapi.json");
+
+const manifestArgIdx = process.argv.indexOf("--manifest");
+const manifestPath = manifestArgIdx !== -1 && process.argv[manifestArgIdx + 1]
+  ? resolve(process.argv[manifestArgIdx + 1])
+  : resolve(repoRoot, "mcp-tools.yaml");
 const generatedDir = resolve(repoRoot, "src", "generated");
 const schemasOutPath = resolve(generatedDir, "schemas.ts");
 const metaOutPath = resolve(generatedDir, "meta.ts");
