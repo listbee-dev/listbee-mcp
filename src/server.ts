@@ -1,54 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { AnySchema } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { z } from "zod";
+import { ListBee } from "listbee";
 
-import { ListBeeClient } from "./client.js";
 import { loadManifest, indexManifest } from "./manifest.js";
-import { autoTitle, buildDescription } from "./tools/shared.js";
+import { autoTitle, buildDescription } from "./utils.js";
+import { safeTool } from "./types.js";
+
+import { handlers } from "./handlers.js";
+import type { Handler } from "./handlers.js";
+import { handleUploadFile } from "./handlers/upload-file.js";
+import { handleStripeConnect } from "./handlers/stripe-connect.js";
 
 import { schemas } from "./generated/schemas.js";
-import {
-  handleCreateListing,
-  handleGetListing,
-  handleUpdateListing,
-  handleListListings,
-  handlePublishListing,
-  handleSetDeliverables,
-  handleRemoveDeliverables,
-  handleDeleteListing,
-} from "./tools/listings.js";
-import {
-  handleListOrders,
-  handleGetOrder,
-  handleDeliverOrder,
-  handleShipOrder,
-  handleRefundOrder,
-} from "./tools/orders.js";
-import { handleUploadFile } from "./tools/files.js";
-import { handleStartStripeConnect, handleDisconnectStripe } from "./tools/stripe.js";
-import { handleListCustomers, handleGetCustomer } from "./tools/customers.js";
-import {
-  handleGetAccount,
-  handleUpdateAccount,
-  handleDeleteAccount,
-  handleCreateAccount,
-  handleVerifyOtp,
-} from "./tools/account.js";
-import {
-  handleListApiKeys,
-  handleCreateApiKey,
-  handleDeleteApiKey,
-} from "./tools/api-keys.js";
-import {
-  handleListWebhooks,
-  handleCreateWebhook,
-  handleUpdateWebhook,
-  handleDeleteWebhook,
-  handleListWebhookEvents,
-  handleRetryWebhookEvent,
-  handleTestWebhook,
-} from "./tools/webhooks.js";
 
 // Read version from package.json
 import { readFileSync } from "node:fs";
@@ -130,72 +95,24 @@ const schemaMap: Record<string, AnySchema | null> = {
 };
 
 /**
- * Handler map — links tool names to their handler functions.
+ * All handlers merged: standard handlers + custom handlers.
+ * stripe-connect is registered directly (returns CallToolResult, not raw data).
  */
-const handlers: Record<
-  string,
-  (client: ListBeeClient, args: any) => Promise<CallToolResult>
-> = {
-  // Listings
-  create_listing: handleCreateListing,
-  get_listing: handleGetListing,
-  update_listing: handleUpdateListing,
-  list_listings: handleListListings,
-  publish_listing: handlePublishListing,
-  set_deliverables: handleSetDeliverables,
-  remove_deliverables: handleRemoveDeliverables,
-  delete_listing: handleDeleteListing,
-  // Files
+const allHandlers: Record<string, Handler> = {
+  ...handlers,
   upload_file: handleUploadFile,
-  // Orders
-  list_orders: handleListOrders,
-  get_order: handleGetOrder,
-  deliver_order: handleDeliverOrder,
-  ship_order: (c, a) => handleShipOrder(c, a),
-  refund_order: handleRefundOrder,
-  // Customers
-  list_customers: handleListCustomers,
-  get_customer: handleGetCustomer,
-  // Account
-  get_account: (c) => handleGetAccount(c) as any,
-  update_account: handleUpdateAccount,
-  delete_account: (c) => handleDeleteAccount(c) as any,
-  create_account: handleCreateAccount,
-  verify_otp: handleVerifyOtp,
-  // API Keys
-  list_api_keys: (c) => handleListApiKeys(c) as any,
-  create_api_key: handleCreateApiKey,
-  delete_api_key: handleDeleteApiKey,
-  // Stripe
-  start_stripe_connect: (c) => handleStartStripeConnect(c) as any,
-  disconnect_stripe: (c) => handleDisconnectStripe(c) as any,
-  // Webhooks
-  list_webhooks: (c) => handleListWebhooks(c) as any,
-  create_webhook: handleCreateWebhook,
-  update_webhook: handleUpdateWebhook,
-  delete_webhook: handleDeleteWebhook,
-  list_webhook_events: handleListWebhookEvents,
-  retry_webhook_event: handleRetryWebhookEvent,
-  test_webhook: handleTestWebhook,
+  // start_stripe_connect is handled separately below (custom CallToolResult)
 };
-
-function getHandler(
-  name: string,
-  client: ListBeeClient,
-): ((args: Record<string, unknown>) => Promise<CallToolResult>) | undefined {
-  const handler = handlers[name];
-  if (handler) {
-    return (args) => handler(client, args);
-  }
-
-  return undefined;
-}
 
 /**
  * Create and configure the MCP server with all tools registered.
  */
 export function createServer(options: CreateServerOptions): McpServer {
-  const client = new ListBeeClient(options.apiKey, options.baseUrl);
+  const client = new ListBee({
+    apiKey: options.apiKey,
+    baseUrl: options.baseUrl,
+  });
+
   const allTools = loadManifest();
   const metaIndex = indexManifest(allTools);
 
@@ -223,8 +140,25 @@ export function createServer(options: CreateServerOptions): McpServer {
     const description = buildDescription(meta);
     const title = autoTitle(toolName);
     const annotations = annotationsFor(toolName);
-    const handler = getHandler(toolName, client);
 
+    // start_stripe_connect: special case — handler returns CallToolResult directly
+    if (toolName === "start_stripe_connect") {
+      server.registerTool(
+        toolName,
+        {
+          description,
+          annotations,
+          ...(schema ? { inputSchema: schema } : {}),
+        },
+        async () => {
+          return handleStripeConnect(client);
+        },
+      );
+      console.error(`  Registered tool: ${title} (${toolName})`);
+      continue;
+    }
+
+    const handler = allHandlers[toolName];
     if (!handler) {
       console.error(`Warning: no handler for tool "${toolName}", skipping.`);
       continue;
@@ -239,7 +173,7 @@ export function createServer(options: CreateServerOptions): McpServer {
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async (args: any) => {
-        return await handler((args ?? {}) as Record<string, unknown>);
+        return safeTool(() => handler(client, (args ?? {}) as Record<string, unknown>));
       },
     );
 
@@ -249,7 +183,7 @@ export function createServer(options: CreateServerOptions): McpServer {
   // Startup validation: every manifest tool must be fully wired
   for (const tool of allTools) {
     const name = tool.name;
-    if (!handlers[name]) {
+    if (!allHandlers[name] && name !== "start_stripe_connect") {
       throw new Error(
         `Startup validation failed: tool "${name}" has no handler registered`,
       );
