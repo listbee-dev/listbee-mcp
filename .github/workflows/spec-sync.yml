@@ -101,13 +101,13 @@ jobs:
           # Check if branch already exists on remote
           if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
             git checkout -B "$BRANCH" "origin/$BRANCH"
-            git add openapi.json mcp-tools.yaml src/generated/
-            git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas" || true
+            git add src/generated/
+            git commit -m "chore: regenerate schemas from updated OpenAPI spec" || true
             git push origin "$BRANCH" --force-with-lease
           else
             git checkout -b "$BRANCH"
-            git add openapi.json mcp-tools.yaml src/generated/
-            git commit -m "chore: sync openapi.json + mcp-tools.yaml and regenerate schemas"
+            git add src/generated/
+            git commit -m "chore: regenerate schemas from updated OpenAPI spec"
             git push origin "$BRANCH"
           fi
 
