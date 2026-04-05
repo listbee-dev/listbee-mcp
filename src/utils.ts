@@ -1,4 +1,4 @@
-import type { ToolMeta } from "../manifest.js";
+import type { ToolMeta } from "./manifest.js";
 
 export interface Deliverable {
   type: string;
