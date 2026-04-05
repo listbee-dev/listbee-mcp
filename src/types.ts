@@ -1,21 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-
-/**
- * Error thrown by ListBeeClient on non-2xx responses.
- */
-export class ListBeeApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly body: unknown,
-  ) {
-    const msg =
-      typeof body === "object" && body !== null && "detail" in body
-        ? String((body as Record<string, unknown>).detail)
-        : JSON.stringify(body);
-    super(`ListBee API error ${status}: ${msg}`);
-    this.name = "ListBeeApiError";
-  }
-}
+import { APIStatusError, APIConnectionError, APITimeoutError } from "listbee";
 
 /**
  * Format a successful result as JSON text content.
@@ -28,9 +12,10 @@ export function jsonResult(data: unknown): CallToolResult {
 
 /**
  * Format an error as an isError result so the LLM can reason about it.
+ * Handles SDK's typed error hierarchy for structured output.
  */
 export function errorResult(err: unknown): CallToolResult {
-  if (err instanceof ListBeeApiError) {
+  if (err instanceof APIStatusError) {
     return {
       isError: true,
       content: [
@@ -39,7 +24,9 @@ export function errorResult(err: unknown): CallToolResult {
           text: JSON.stringify(
             {
               status: err.status,
-              error: err.body,
+              code: err.code,
+              detail: err.detail,
+              ...(err.param ? { param: err.param } : {}),
             },
             null,
             2,
@@ -48,7 +35,18 @@ export function errorResult(err: unknown): CallToolResult {
       ],
     };
   }
-
+  if (err instanceof APIConnectionError) {
+    return {
+      isError: true,
+      content: [{ type: "text", text: `Connection error: ${err.message}` }],
+    };
+  }
+  if (err instanceof APITimeoutError) {
+    return {
+      isError: true,
+      content: [{ type: "text", text: `Request timed out: ${err.message}` }],
+    };
+  }
   const message = err instanceof Error ? err.message : String(err);
   return {
     isError: true,
