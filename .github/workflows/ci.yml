@@ -31,6 +31,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Fetch OpenAPI spec
+        run: curl -sf https://api.listbee.so/openapi.json -o openapi.json
       - run: npm run build
       - name: Compare tools/list across transports
         run: |
