@@ -8,7 +8,7 @@ MCP server for ListBee — commerce API for AI agents.
 
 ## Connect
 
-**Remote (zero install):** `https://api.listbee.so/mcp` — for ChatGPT Apps, Claude API Connector, remote agents. Each request needs `Authorization: Bearer lb_...` header.
+**Remote (zero install):** `https://mcp.listbee.so` — for ChatGPT Apps, Claude API Connector, remote agents. Each request needs `Authorization: Bearer lb_...` header.
 
 **Local (stdio):** `npx -y listbee-mcp` — for Claude Desktop, Cursor, VS Code, Cline.
 
