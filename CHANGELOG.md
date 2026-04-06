@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Regenerated Zod schemas from updated OpenAPI spec — `DeliverableResponse` now includes `id` field (`del_` prefix)
+
 ## [0.4.0] - 2026-04-05
 
 ### Changed
