@@ -18,6 +18,8 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
+      - name: Fetch OpenAPI spec
+        run: curl -sf https://api.listbee.so/openapi.json -o openapi.json
       - run: npm run build
       - run: npm publish --provenance --access public
         env:
