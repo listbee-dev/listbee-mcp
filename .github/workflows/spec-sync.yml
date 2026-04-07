@@ -114,18 +114,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Check if branch already exists on remote
-          if git ls-remote --exit-code origin "refs/heads/$BRANCH" >/dev/null 2>&1; then
-            git checkout -B "$BRANCH" "origin/$BRANCH"
-            git add src/generated/
-            git commit -m "chore: regenerate schemas from updated OpenAPI spec" || true
-            git push origin "$BRANCH" --force-with-lease
-          else
-            git checkout -b "$BRANCH"
-            git add src/generated/
-            git commit -m "chore: regenerate schemas from updated OpenAPI spec"
-            git push origin "$BRANCH"
-          fi
+          # Always start fresh from main — avoids stale branch conflicts
+          git checkout -B "$BRANCH"
+          git add src/generated/
+          git commit -m "chore: regenerate schemas from updated OpenAPI spec" || true
+          git push origin "$BRANCH" --force-with-lease --set-upstream 2>/dev/null || \
+            git push origin "$BRANCH" --force --set-upstream
 
           # Create PR if one doesn't exist yet, otherwise update body
           EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty')
