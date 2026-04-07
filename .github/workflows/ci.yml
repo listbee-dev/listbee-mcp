@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  repository_dispatch:
+    types: [api-changed]
 
 jobs:
   build:
@@ -63,3 +65,24 @@ jobs:
             echo "  Expected: $EXPECTED, Got: $TOOL_COUNT"
             exit 1
           fi
+
+  drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch OpenAPI spec
+        run: curl -sf https://api.listbee.so/openapi.json -o openapi.json
+      - name: Fetch MCP manifest
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+        run: |
+          curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
+            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+      - name: Check for schema drift
+        run: npm run generate -- --check

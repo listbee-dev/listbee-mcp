@@ -1,0 +1,31 @@
+name: SDK Bump
+
+on:
+  repository_dispatch:
+    types: [sdk-published]
+
+jobs:
+  bump-sdk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bump SDK version
+        run: npm install listbee@latest
+      - name: Build
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "chore: bump listbee SDK to ${{ github.event.client_payload.version }}"
+          body: "Auto-generated after listbee SDK publish. Build: ${{ steps.build.outcome }}"
+          branch: sdk-bump/auto
+          labels: api-sync
+          commit-message: "chore: bump listbee SDK dependency"
