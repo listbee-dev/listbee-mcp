@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-04-07
+
+### Changed
+- Updated schemas to include `sort_order` field on checkout schema fields
+- Bumped `listbee` SDK dependency to `^0.10.0`
+
 ## [0.6.0] - 2026-04-07
 
 ### Changed
