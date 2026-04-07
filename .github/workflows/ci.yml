@@ -81,8 +81,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
         run: |
-          curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
-            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Failed to fetch mcp-tools.yaml (HTTP $HTTP_CODE) — using local copy"
+          else
+            echo "$RESPONSE" | head -n -1 | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          fi
       - name: Check for schema drift
         run: npm run generate -- --check
