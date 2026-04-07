@@ -51,7 +51,7 @@ function annotationsFor(name: string): ToolAnnotations {
       openWorldHint: false,
     };
   }
-  if (name.startsWith("update_") || name === "set_deliverables" || name === "ship_order") {
+  if (name.startsWith("update_") || name === "set_deliverables") {
     return {
       readOnlyHint: false,
       destructiveHint: false,

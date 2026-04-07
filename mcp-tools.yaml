@@ -149,33 +149,25 @@ tools:
     when_to_use: "Use to get full details of a specific order including buyer info and payment."
 
   - type: operation
-    operation_id: deliver_order
-    name: deliver_order
+    operation_id: fulfill_order
+    name: fulfill_order
     category: orders
     priority: 8
     status: active
-    when_to_use: "Use only for external fulfillment orders when content must be sent after purchase by your app or workflow."
+    when_to_use: "Use when you need to deliver digital content to a buyer after purchase, or close out an order as complete."
     description: >
-      Push digital content to a buyer for an external fulfillment order.
-      Not needed for managed delivery — ListBee handles that automatically.
-
-  - type: operation
-    operation_id: ship_order
-    name: ship_order
-    category: orders
-    priority: 7
-    status: active
-    when_to_use: "Use when a physical order needs shipping info recorded. Only for external fulfillment orders with physical goods."
-    description: >
-      Record shipping info (carrier + tracking code) and transition order to FULFILLED.
-      Only valid for external fulfillment orders. Idempotent with same tracking code.
+      Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee —
+      creates an access grant and emails the buyer. Omit deliverables to mark the order as complete
+      without delivering content (close-out for orders handled externally).
     hints:
-      - "Only works on orders in PAID state for EXTERNAL fulfillment listings"
-      - "Fires order.fulfilled webhook with shipping details"
+      - "Only works on orders in PAID state for listings without pre-set deliverables"
+      - "Fires order.fulfilled webhook"
+      - "Deliverables are optional — omit for close-out"
     input_example:
       order_id: "ord_9xM4kP7nR2qT5wY1"
-      carrier: "USPS"
-      tracking_code: "9400111899223"
+      deliverables:
+        - type: "text"
+          value: "Your personalized horoscope reading..."
 
   - type: operation
     operation_id: refund_order
@@ -315,12 +307,16 @@ tools:
     category: api_keys
     priority: 4
     status: active
-    when_to_use: "Use when the user needs a new API key, e.g. for a separate agent or integration."
+    when_to_use: "Use after verify_otp to get a permanent API key. Also use when the user needs additional keys for other agents or integrations."
     description: >
-      Create a new API key. The full key value (lb_ prefixed) is returned only once —
-      store it securely. Each key can have a name for identification.
+      Step 3 of 3 in the auth flow: send_otp → verify_otp → create_api_key.
+      Create a permanent API key (lb_ prefixed). After verifying OTP, use the
+      short-lived access token (at_ prefix) to call this endpoint. The returned
+      lb_ key is permanent — use it for all subsequent API calls.
     hints:
-      - "The full key is only shown once at creation — store it immediately"
+      - "After verify_otp, use the at_ access token as Bearer to call this endpoint"
+      - "The returned lb_ key is permanent — store it and use for all future calls"
+      - "The at_ access token expires in 24 hours, but the lb_ key never expires"
 
   - type: operation
     operation_id: delete_api_key

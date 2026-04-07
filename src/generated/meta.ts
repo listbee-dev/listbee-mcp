@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-07T15:58:04.934Z
-// sha256: 51e8531a0a3cf0ff8953bf615ea9d0d2c1f0aa0897f9d9ed97a6840f998d31bb
+// generated_at: 2026-04-07T18:14:33.312Z
+// sha256: 8726fbbf273f309320b8a437c33d5f7069a4dee19c21b45e6fb5899969c2a7a1
 
 export interface ToolMeta {
   operationId: string;
@@ -17,7 +17,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "create_api_key",
     method: "POST",
     path: "/v1/api-keys",
-    description: "Create a new API key. The full key value (lb_ prefixed) is returned only once — store it securely. Each key can have a name for identification.",
+    description: "Step 3 of 3 in the auth flow: send_otp → verify_otp → create_api_key. Create a permanent API key (lb_ prefixed). After verifying OTP, use the short-lived access token (at_ prefix) to call this endpoint. The returned lb_ key is permanent — use it for all subsequent API calls.",
   },
   create_listing: {
     operationId: "create_listing",
@@ -55,17 +55,17 @@ export const meta: Record<string, ToolMeta> = {
     path: "/v1/webhooks/{webhook_id}",
     description: "Delete a webhook endpoint. Irreversible.",
   },
-  deliver_order: {
-    operationId: "deliver_order",
-    method: "POST",
-    path: "/v1/orders/{order_id}/deliver",
-    description: "Push digital content to a buyer for an external fulfillment order. Not needed for managed delivery — ListBee handles that automatically.",
-  },
   disconnect_stripe: {
     operationId: "disconnect_stripe",
     method: "DELETE",
     path: "/v1/account/stripe",
     description: "Disconnect the Stripe account from ListBee. Existing listings retain their payment snapshot but new checkouts will fail.",
+  },
+  fulfill_order: {
+    operationId: "fulfill_order",
+    method: "POST",
+    path: "/v1/orders/{order_id}/fulfill",
+    description: "Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee — creates an access grant and emails the buyer. Omit deliverables to mark the order as complete without delivering content (close-out for orders handled externally).",
   },
   get_account: {
     operationId: "get_account",
@@ -89,7 +89,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_order",
     method: "GET",
     path: "/v1/orders/{order_id}",
-    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. Managed listings auto-fulfill. External listings require fulfill() or ship() after payment.",
+    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. PAID is terminal for external orders where delivery is handled outside ListBee. FULFILLED means content was delivered via ListBee or the order was explicitly closed via POST /fulfill. Managed listings auto-fulfill on payment.",
   },
   list_api_keys: {
     operationId: "list_api_keys",
@@ -113,7 +113,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "list_orders",
     method: "GET",
     path: "/v1/orders",
-    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) → PAID (payment confirmed, order.paid webhook fires) → FULFILLED (content delivered or goods shipped). Terminal states: CANCELED (payment failed or abandoned), FAILED (system error). Managed listings auto-fulfill on payment. External listings stay in PAID until the seller calls fulfill() or ship().",
+    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) → PAID (payment confirmed, order.paid webhook fires) → FULFILLED (content delivered via ListBee or order closed via POST /fulfill). PAID is terminal for external orders where delivery is handled outside ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Managed listings auto-fulfill on payment. External listings stay in PAID until the seller calls POST /fulfill.",
   },
   list_webhook_events: {
     operationId: "list_webhook_events",
@@ -162,12 +162,6 @@ export const meta: Record<string, ToolMeta> = {
     method: "PUT",
     path: "/v1/listings/{listing_id}/deliverables",
     description: "Set digital deliverables (files, URLs, or text) on a listing. Required for managed fulfillment mode.",
-  },
-  ship_order: {
-    operationId: "ship_order",
-    method: "POST",
-    path: "/v1/orders/{order_id}/ship",
-    description: "Record shipping info (carrier + tracking code) and transition order to FULFILLED. Only valid for external fulfillment orders. Idempotent with same tracking code.",
   },
   start_stripe_connect: {
     operationId: "start_stripe_connect",

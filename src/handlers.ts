@@ -16,8 +16,7 @@ export const handlers: Record<string, Handler> = {
   // Orders
   list_orders:         (c, a) => c.orders.list(a as any),
   get_order:           (c, a) => c.orders.get(a.order_id as string),
-  deliver_order:       (c, a) => { const { order_id, ...p } = a; return c.orders.deliver(order_id as string, p as any); },
-  ship_order:          (c, a) => { const { order_id, ...p } = a; return c.orders.ship(order_id as string, p as any); },
+  fulfill_order:       (c, a) => { const { order_id, ...p } = a; return c.orders.fulfill(order_id as string, p as any); },
   refund_order:        (c, a) => c.orders.refund(a.order_id as string),
 
   // Customers

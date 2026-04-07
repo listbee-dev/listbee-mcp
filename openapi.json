@@ -643,7 +643,7 @@
           "Files"
         ],
         "summary": "Upload file",
-        "description": "Upload a file for use as a listing deliverable. Returns a file token valid for 24 hours. Pass the token to PUT /v1/listings/{listing_id}/deliverables or POST /v1/orders/{id}/deliver to attach the file. Max size: 25 MB. Accepted types: PDF, EPUB, ZIP, images, audio, video, Office documents.",
+        "description": "Upload a file for use as a listing deliverable. Returns a file token valid for 24 hours. Pass the token to PUT /v1/listings/{listing_id}/deliverables or POST /v1/orders/{id}/fulfill to attach the file. Max size: 25 MB. Accepted types: PDF, EPUB, ZIP, images, audio, video, Office documents.",
         "operationId": "upload_file",
         "requestBody": {
           "content": {
@@ -1546,7 +1546,7 @@
           "Orders"
         ],
         "summary": "List orders",
-        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) \u2192 PAID (payment confirmed, order.paid webhook fires) \u2192 FULFILLED (content delivered or goods shipped). Terminal states: CANCELED (payment failed or abandoned), FAILED (system error). Managed listings auto-fulfill on payment. External listings stay in PAID until the seller calls fulfill() or ship().",
+        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) \u2192 PAID (payment confirmed, order.paid webhook fires) \u2192 FULFILLED (content delivered via ListBee or order closed via POST /fulfill). PAID is terminal for external orders where delivery is handled outside ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Managed listings auto-fulfill on payment. External listings stay in PAID until the seller calls POST /fulfill.",
         "operationId": "list_orders",
         "security": [
           {
@@ -1737,7 +1737,7 @@
           "Orders"
         ],
         "summary": "Get order",
-        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. Managed listings auto-fulfill. External listings require fulfill() or ship() after payment.",
+        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. PAID is terminal for external orders where delivery is handled outside ListBee. FULFILLED means content was delivered via ListBee or the order was explicitly closed via POST /fulfill. Managed listings auto-fulfill on payment.",
         "operationId": "get_order",
         "security": [
           {
@@ -1877,14 +1877,14 @@
         }
       }
     },
-    "/v1/orders/{order_id}/deliver": {
+    "/v1/orders/{order_id}/fulfill": {
       "post": {
         "tags": [
           "Orders"
         ],
-        "summary": "Deliver order",
-        "description": "Mark an order as fulfilled and push a deliverable for ListBee to deliver. Transitions PAID \u2192 FULFILLED. Only valid for orders on EXTERNAL listings. Fires order.fulfilled webhook with the full order snapshot. Idempotent \u2014 calling on an already-fulfilled order returns 200.",
-        "operationId": "deliver_order",
+        "summary": "Fulfill Order",
+        "description": "Fulfill an order by delivering digital content or marking it complete. Include `deliverables` to deliver files, URLs, or text \u2014 ListBee creates an access grant, emails the buyer a download link, and transitions the order to FULFILLED. Omit `deliverables` to close out an order that was handled externally (bookkeeping only, no buyer email). Only valid for orders in PAID state on listings without pre-set deliverables (external fulfillment). Idempotent: returns 200 if already FULFILLED.",
+        "operationId": "fulfill_order",
         "security": [
           {
             "HTTPBearer": []
@@ -1911,7 +1911,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DeliverOrderRequest"
+                "$ref": "#/components/schemas/FulfillOrderRequest"
               }
             }
           }
@@ -1927,138 +1927,11 @@
               }
             }
           },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
           "404": {
-            "description": "Order not found or not owned by this account.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Order cannot be fulfilled. Possible reasons: order not in PAID state, listing uses managed fulfillment (auto-fulfilled on payment), or deliverable URL unreachable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
+            "description": "Order not found"
           },
           "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/orders/{order_id}/ship": {
-      "post": {
-        "tags": [
-          "Orders"
-        ],
-        "summary": "Ship order",
-        "description": "Record shipping info (carrier + tracking code) and transition the order from PAID \u2192 FULFILLED. Only valid for orders on EXTERNAL listings with physical goods. Fires order.fulfilled webhook with shipping details in the payload. Idempotent when called with the same tracking code.",
-        "operationId": "ship_order",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "order_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Order ID.",
-              "examples": [
-                "ord_9xM4kP7nR2qT5wY1"
-              ],
-              "title": "Order Id"
-            },
-            "description": "Order ID."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShipOrderRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Order not found or not owned by this account.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Order cannot be shipped. Possible reasons: order not in PAID state, or listing uses managed fulfillment.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
+            "description": "Invalid transition or managed listing"
           }
         }
       }
@@ -2207,7 +2080,7 @@
           "Webhooks"
         ],
         "summary": "Create webhook",
-        "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.shipped, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, checkout_data, shipping_address, timestamps, carrier/tracking, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
+        "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, checkout_data, shipping_address, timestamps, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
         "operationId": "create_webhook",
         "requestBody": {
           "content": {
@@ -2859,6 +2732,14 @@
               "G-ABC123XYZ"
             ]
           },
+          "notify_orders": {
+            "type": "boolean",
+            "title": "Notify Orders",
+            "description": "Whether seller receives email alerts for new external orders",
+            "examples": [
+              true
+            ]
+          },
           "stats": {
             "$ref": "#/components/schemas/AccountStats",
             "description": "Account aggregate statistics."
@@ -2885,6 +2766,7 @@
           "plan",
           "fee_rate",
           "billing_status",
+          "notify_orders",
           "stats",
           "readiness",
           "created_at"
@@ -3963,36 +3845,6 @@
         ],
         "title": "CustomerResponse"
       },
-      "DeliverOrderRequest": {
-        "properties": {
-          "deliverables": {
-            "items": {
-              "$ref": "#/components/schemas/DeliverableInputRequest"
-            },
-            "type": "array",
-            "title": "Deliverables",
-            "description": "Array of deliverables to attach. Max 3. Mixed types allowed.",
-            "examples": [
-              [
-                {
-                  "token": "file_7kQ2xY9mN3pR5tW1vB8a01",
-                  "type": "file"
-                },
-                {
-                  "type": "url",
-                  "value": "https://example.com/bonus"
-                }
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "deliverables"
-        ],
-        "title": "DeliverOrderRequest",
-        "description": "Push deliverables for a specific order. Marks order as fulfilled."
-      },
       "DeliverableInputRequest": {
         "properties": {
           "type": {
@@ -4038,7 +3890,7 @@
           "type"
         ],
         "title": "DeliverableInputRequest",
-        "description": "Typed deliverable input. Shared by PUT /deliverables and POST /deliver."
+        "description": "Typed deliverable input. Shared by PUT /deliverables and POST /fulfill."
       },
       "DeliverableResponse": {
         "properties": {
@@ -4286,6 +4138,40 @@
           "created_at"
         ],
         "title": "FileResponse"
+      },
+      "FulfillOrderRequest": {
+        "properties": {
+          "deliverables": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DeliverableInputRequest"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverables",
+            "description": "Deliverables to attach. Max 3, mixed types. Omit for close-out (no content delivery).",
+            "examples": [
+              [
+                {
+                  "token": "file_7kQ2xY9mN3pR5tW1vB8a01",
+                  "type": "file"
+                },
+                {
+                  "type": "url",
+                  "value": "https://example.com/bonus"
+                }
+              ]
+            ]
+          }
+        },
+        "type": "object",
+        "title": "FulfillOrderRequest",
+        "description": "Fulfill an order. Include deliverables to deliver digital content via ListBee.\nOmit deliverables to mark the order as complete (close-out)."
       },
       "FulfillmentMode": {
         "type": "string",
@@ -4916,7 +4802,7 @@
           },
           "status": {
             "$ref": "#/components/schemas/OrderStatus",
-            "description": "Current order status. Lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. Terminal: CANCELED, FAILED.",
+            "description": "Current order status. Lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. PAID is terminal for external orders (seller handles delivery outside ListBee). FULFILLED means content delivered via ListBee or order closed via POST /fulfill. Terminal error states: CANCELED, FAILED.",
             "examples": [
               "paid"
             ]
@@ -4957,52 +4843,7 @@
             },
             "type": "array",
             "title": "Deliverables",
-            "description": "Deliverables attached to this order. Auto-populated for managed fulfillment, or pushed via POST /deliver for external."
-          },
-          "carrier": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Carrier",
-            "description": "Shipping carrier name",
-            "examples": [
-              "USPS"
-            ]
-          },
-          "tracking_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tracking Code",
-            "description": "Shipping tracking code",
-            "examples": [
-              "9400111899223"
-            ]
-          },
-          "seller_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Seller Note",
-            "description": "Note from seller to buyer",
-            "examples": [
-              "Ships within 2 business days"
-            ]
+            "description": "Deliverables attached to this order. Auto-populated for managed fulfillment on payment, or pushed via POST /fulfill for dynamic fulfillment."
           },
           "stripe_payment_intent_id": {
             "type": "string",
@@ -5102,22 +4943,6 @@
             "description": "When the dispute was opened. null if not disputed.",
             "examples": [
               "2026-04-02T10:00:00Z"
-            ]
-          },
-          "shipped_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Shipped At",
-            "description": "When shipping tracking was added",
-            "examples": [
-              "2026-04-02T16:00:00Z"
             ]
           },
           "paid_at": {
@@ -5407,53 +5232,6 @@
         "title": "SetDeliverablesRequest",
         "description": "Replace all deliverables on a listing."
       },
-      "ShipOrderRequest": {
-        "properties": {
-          "carrier": {
-            "type": "string",
-            "maxLength": 50,
-            "title": "Carrier",
-            "description": "Shipping carrier name",
-            "examples": [
-              "USPS",
-              "FedEx",
-              "DHL"
-            ]
-          },
-          "tracking_code": {
-            "type": "string",
-            "maxLength": 100,
-            "title": "Tracking Code",
-            "description": "Tracking number",
-            "examples": [
-              "9400111899223"
-            ]
-          },
-          "seller_note": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Seller Note",
-            "description": "Note to include with tracking notification",
-            "examples": [
-              "Enjoy your purchase!"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "carrier",
-          "tracking_code"
-        ],
-        "title": "ShipOrderRequest",
-        "description": "Add shipping tracking to an order."
-      },
       "ShippingAddressResponse": {
         "properties": {
           "name": {
@@ -5652,6 +5430,21 @@
             "description": "Google Analytics 4 Measurement ID (G-XXXXXXXXXX). Set to null to remove",
             "examples": [
               "G-ABC123XYZ"
+            ]
+          },
+          "notify_orders": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notify Orders",
+            "description": "Email me when I receive a new external order",
+            "examples": [
+              true
             ]
           }
         },
@@ -6375,7 +6168,6 @@
         "enum": [
           "order.paid",
           "order.fulfilled",
-          "order.shipped",
           "order.refunded",
           "order.disputed",
           "order.dispute_closed",
