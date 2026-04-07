@@ -32,14 +32,14 @@ jobs:
           curl -sf https://api.listbee.so/openapi.json -o openapi.json
           curl -sf -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
             "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
-            | jq -r '.content' | base64 -d > mcp-tools.yaml
+            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
 
       - name: Fetch manifest (api-spec-changed)
         if: github.event.action == 'api-spec-changed'
         run: |
           curl -sf -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
             "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
-            | jq -r '.content' | base64 -d > mcp-tools.yaml
+            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
 
       - name: Regenerate schemas
         run: npm run generate
