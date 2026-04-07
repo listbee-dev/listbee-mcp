@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-07T06:41:12.150Z
-// sha256: 58aeeb935ab3a45e4b4ddc45ae8e5441d3cd56373529bf772dbf921c2c5d63bd
+// generated_at: 2026-04-07T10:50:53.772Z
+// sha256: ec84c21375282732994ca9659483ccfbde91853d8745a8015535423a883e0ce1
 
 export interface ToolMeta {
   operationId: string;
@@ -13,12 +13,6 @@ export interface ToolMeta {
 }
 
 export const meta: Record<string, ToolMeta> = {
-  create_account: {
-    operationId: "create_account",
-    method: "POST",
-    path: "/v1/account",
-    description: "Create a new ListBee account with an email address. Sends an OTP code to the email for verification. Follow up with verify_otp to complete signup and get an API key.",
-  },
   create_api_key: {
     operationId: "create_api_key",
     method: "POST",
@@ -157,6 +151,12 @@ export const meta: Record<string, ToolMeta> = {
     path: "/v1/webhooks/{webhook_id}/events/{event_id}/retry",
     description: "Retry delivery of a failed webhook event. Resets attempt counter.",
   },
+  send_otp: {
+    operationId: "send_otp",
+    method: "POST",
+    path: "/v1/auth/otp",
+    description: "Send an OTP code to an email address to start account creation or re-authentication. Idempotent — calling again re-sends the code. If no account exists for this email, one will be created when the OTP is verified. Follow up with verify_otp to complete authentication and receive an access token.",
+  },
   set_deliverables: {
     operationId: "set_deliverables",
     method: "PUT",
@@ -208,7 +208,7 @@ export const meta: Record<string, ToolMeta> = {
   verify_otp: {
     operationId: "verify_otp",
     method: "POST",
-    path: "/v1/account/verify/otp",
-    description: "Verify the OTP code sent to the user's email during account creation. Returns an API key on success — store it securely for all future API calls.",
+    path: "/v1/auth/otp/verify",
+    description: "Verify the OTP code sent to the user's email. Returns a short-lived access token (24h) on success. Use the access_token to create a permanent API key via create_api_key. Works for both new signups and returning account re-authentication.",
   },
 };
