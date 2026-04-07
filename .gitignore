@@ -6,4 +6,4 @@ dist/
 CLAUDE.md
 SESSION_PROMPT.md
 docs/superpowers/
-openapi.json
+# openapi.json committed — input for generate + drift-check CI
