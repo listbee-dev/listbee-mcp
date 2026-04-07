@@ -27,8 +27,6 @@ export const handlers: Record<string, Handler> = {
   get_account:         (c) => c.account.get(),
   update_account:      (c, a) => c.account.update(a as any),
   delete_account:      (c) => c.account.delete(),
-  send_otp:            (c, a) => c.signup.sendOtp(a as any),
-  verify_otp:          (c, a) => c.signup.verify(a as any),
 
   // API Keys
   list_api_keys:       (c) => c.apiKeys.list(),

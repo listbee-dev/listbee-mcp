@@ -256,39 +256,6 @@ tools:
     hints:
       - "This is destructive and irreversible — confirm with the user first"
 
-  - type: operation
-    operation_id: send_otp
-    name: send_otp
-    category: account
-    priority: 10
-    status: active
-    when_to_use: "Use when a new user wants to sign up or re-authenticate. First step in the auth flow."
-    description: >
-      Send an OTP code to an email address to start account creation or re-authentication.
-      Idempotent — calling again re-sends the code. If no account exists for this email,
-      one will be created when the OTP is verified. Follow up with verify_otp to complete
-      authentication and receive an access token.
-    hints:
-      - "This sends an OTP email — the user must provide the code"
-      - "After send_otp, call verify_otp with the code"
-      - "Works for both new signups and returning users"
-
-  - type: operation
-    operation_id: verify_otp
-    name: verify_otp
-    category: account
-    priority: 10
-    status: active
-    when_to_use: "Use after send_otp to verify the email OTP code and complete authentication."
-    description: >
-      Verify the OTP code sent to the user's email. Returns a short-lived access token (24h)
-      on success. Use the access_token to create a permanent API key via create_api_key.
-      Works for both new signups and returning account re-authentication.
-    hints:
-      - "The user must provide the OTP code from their email"
-      - "On success, returns an access_token (at_ prefixed) — use it to create a permanent API key"
-      - "Call create_api_key with the access_token to get a permanent lb_ API key"
-
   # --- API Keys ---
   - type: operation
     operation_id: list_api_keys
@@ -307,16 +274,12 @@ tools:
     category: api_keys
     priority: 4
     status: active
-    when_to_use: "Use after verify_otp to get a permanent API key. Also use when the user needs additional keys for other agents or integrations."
+    when_to_use: "Use when the user needs an additional API key for agents or integrations."
     description: >
-      Step 3 of 3 in the auth flow: send_otp → verify_otp → create_api_key.
-      Create a permanent API key (lb_ prefixed). After verifying OTP, use the
-      short-lived access token (at_ prefix) to call this endpoint. The returned
-      lb_ key is permanent — use it for all subsequent API calls.
+      Create a permanent API key (lb_ prefixed). The returned key is permanent — use it
+      for all subsequent API calls. Account creation is handled via the ListBee Console.
     hints:
-      - "After verify_otp, use the at_ access token as Bearer to call this endpoint"
       - "The returned lb_ key is permanent — store it and use for all future calls"
-      - "The at_ access token expires in 24 hours, but the lb_ key never expires"
 
   - type: operation
     operation_id: delete_api_key

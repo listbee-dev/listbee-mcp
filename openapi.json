@@ -13,120 +13,6 @@
     }
   ],
   "paths": {
-    "/v1/auth/otp": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Send a one-time password to an email address",
-        "description": "Step 1 of 3 in the authentication flow: send_otp \u2192 verify_otp \u2192 create_api_key.\n\nSends a 6-digit verification code to the given email. Works for both new and existing accounts \u2014 if no account exists, one will be created when the code is verified. The code expires in 5 minutes.\n\nNext: call `verify_otp` with the code to receive a short-lived access token.",
-        "operationId": "send_otp",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendOtpRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OtpRequestResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Blocked email domain.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many OTP requests.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/otp/verify": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Verify a one-time password and get an access token",
-        "description": "Step 2 of 3 in the authentication flow: send_otp \u2192 verify_otp \u2192 create_api_key.\n\nVerifies the 6-digit code and returns a short-lived access token (`at_` prefix, 24 hours). If this is the first verification for this email, a new account is created (`is_new: true`).\n\nThe access token is NOT a permanent API key. Next: call `POST /v1/api-keys` with `Authorization: Bearer at_...` to create a permanent API key (`lb_` prefix). Use the permanent key for all subsequent API calls.",
-        "operationId": "verify_otp",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyOtpRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSessionResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or expired OTP code.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many verification attempts.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/account": {
       "get": {
         "tags": [
@@ -288,7 +174,7 @@
           "API Keys"
         ],
         "summary": "Create API key",
-        "description": "Step 3 of 3 in the authentication flow: send_otp \u2192 verify_otp \u2192 create_api_key.\n\nCreate a permanent API key (`lb_` prefix). After verifying OTP, use the short-lived access token (`Authorization: Bearer at_...`) to call this endpoint. The returned `lb_` key is permanent \u2014 use it for all subsequent API calls.\n\nAlso works with an existing `lb_` key to create additional keys for other agents or integrations.",
+        "description": "Create a new permanent API key (`lb_` prefix). Use this to provision separate keys for different agents or integrations. The returned key value is only shown once at creation time \u2014 store it securely.",
         "operationId": "create_api_key",
         "requestBody": {
           "content": {
@@ -3093,66 +2979,6 @@
         ],
         "title": "ApiKeyResponse"
       },
-      "AuthSessionResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "auth_session",
-            "title": "Object",
-            "description": "Object type.",
-            "default": "auth_session",
-            "examples": [
-              "auth_session"
-            ]
-          },
-          "access_token": {
-            "type": "string",
-            "title": "Access Token",
-            "description": "Short-lived access token (`at_` prefix, expires in 24 hours). This is NOT a permanent API key. To get a permanent key: call `POST /v1/api-keys` with `Authorization: Bearer at_...` \u2014 the returned `lb_` key is permanent and should be used for all subsequent API calls.",
-            "examples": [
-              "at_abc123def456..."
-            ]
-          },
-          "token_type": {
-            "type": "string",
-            "const": "bearer",
-            "title": "Token Type",
-            "description": "Token type.",
-            "default": "bearer",
-            "examples": [
-              "bearer"
-            ]
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "description": "Seconds until the access token expires.",
-            "default": 86400,
-            "examples": [
-              86400
-            ]
-          },
-          "is_new": {
-            "type": "boolean",
-            "title": "Is New",
-            "description": "True if this verification created a new account. False for returning accounts.",
-            "examples": [
-              true
-            ]
-          },
-          "account": {
-            "$ref": "#/components/schemas/AccountResponse",
-            "description": "The authenticated account with readiness status."
-          }
-        },
-        "type": "object",
-        "required": [
-          "access_token",
-          "is_new",
-          "account"
-        ],
-        "title": "AuthSessionResponse"
-      },
       "BlurMode": {
         "type": "string",
         "enum": [
@@ -5011,51 +4837,6 @@
         ],
         "title": "OrderStatus"
       },
-      "OtpRequestResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "otp_request",
-            "title": "Object",
-            "description": "Object type.",
-            "default": "otp_request",
-            "examples": [
-              "otp_request"
-            ]
-          },
-          "email": {
-            "type": "string",
-            "title": "Email",
-            "description": "Email the verification code was sent to.",
-            "examples": [
-              "seller@example.com"
-            ]
-          },
-          "expires_in": {
-            "type": "integer",
-            "title": "Expires In",
-            "description": "Seconds until the verification code expires.",
-            "default": 300,
-            "examples": [
-              300
-            ]
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "Human-readable instruction.",
-            "default": "Check your email for a 6-digit verification code.",
-            "examples": [
-              "Check your email for a 6-digit verification code."
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "OtpRequestResponse"
-      },
       "PingResponse": {
         "properties": {
           "object": {
@@ -5187,24 +4968,6 @@
           "content"
         ],
         "title": "ReviewInput"
-      },
-      "SendOtpRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "Email address to send the verification code to. Works for both new and existing accounts \u2014 if no account exists for this email, one will be created when the code is verified.",
-            "examples": [
-              "seller@example.com"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "SendOtpRequest"
       },
       "SetDeliverablesRequest": {
         "properties": {
@@ -5930,33 +5693,6 @@
         ],
         "title": "ValidationError"
       },
-      "VerifyOtpRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "Email used when requesting the code.",
-            "examples": [
-              "seller@example.com"
-            ]
-          },
-          "code": {
-            "type": "string",
-            "title": "Code",
-            "description": "6-digit verification code from email.",
-            "examples": [
-              "482901"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "code"
-        ],
-        "title": "VerifyOtpRequest"
-      },
       "WebhookEventListResponse": {
         "properties": {
           "object": {
@@ -6431,7 +6167,7 @@
     "securitySchemes": {
       "HTTPBearer": {
         "type": "http",
-        "description": "API key (`lb_` prefix) or access token (`at_` prefix). Pass as: `Authorization: Bearer <token>`",
+        "description": "API key (`lb_` prefix). Pass as: `Authorization: Bearer lb_...`",
         "scheme": "bearer"
       }
     }

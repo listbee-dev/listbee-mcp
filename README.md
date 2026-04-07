@@ -152,8 +152,6 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 
 | Tool | Description |
 |------|-------------|
-| `create_account` | Create a new ListBee account. Sends an OTP to the email for verification. |
-| `verify_otp` | Verify the OTP sent during signup. Returns an API key on success — store it. |
 | `get_account` | Get the account's full state including readiness and billing status. |
 | `update_account` | Update display name, bio, or avatar. These appear on product pages. |
 | `delete_account` | Permanently delete the account and all data. Irreversible. |
@@ -180,8 +178,7 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 |------|-------------|
 | `list_orders` | See all sales and order status. |
 | `get_order` | Get full order details including buyer info and payment. |
-| `deliver_order` | Push digital content to a buyer (external fulfillment only). |
-| `ship_order` | Record shipping info and mark order as fulfilled (external fulfillment). |
+| `fulfill_order` | Push digital content to a buyer or mark as fulfilled (external fulfillment). |
 | `refund_order` | Issue a full refund for an order through Stripe. |
 
 ### Customers

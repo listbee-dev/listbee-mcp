@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed
+- Removed `send_otp` and `verify_otp` tools — account creation now handled via the ListBee Console
+
 ## [0.7.0] - 2026-04-07
 
 ### Changed
