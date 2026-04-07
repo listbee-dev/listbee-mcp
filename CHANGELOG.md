@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-07
+
 ### Changed
 - Renamed `create_account` tool to `send_otp` — maps to new `POST /v1/auth/otp` endpoint
 - Updated `verify_otp` tool to new path `POST /v1/auth/otp/verify` — response returns `access_token` instead of `api_key`
-- Bumped `listbee` SDK dependency to `^0.8.1` (new auth API: `signup.sendOtp()`, `AuthSessionResponse`)
+- Bumped `listbee` SDK dependency to `^0.9.0` (new auth API: `signup.sendOtp()`, `AuthSessionResponse`)
 - Regenerated Zod schemas from updated OpenAPI spec — `DeliverableResponse` now includes `id` field (`del_` prefix)
 
 ## [0.4.0] - 2026-04-05
