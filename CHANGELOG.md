@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-07
+
 ### Changed
 - Renamed `deliver_order` tool to `fulfill_order` with optional deliverables
 
