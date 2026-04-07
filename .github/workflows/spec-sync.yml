@@ -30,16 +30,32 @@ jobs:
         if: github.event.action == 'api-deployed'
         run: |
           curl -sf https://api.listbee.so/openapi.json -o openapi.json
-          curl -sf -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
-            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
-            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          echo "Fetching mcp-tools.yaml from listbee-dev/listbee..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
+            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to fetch mcp-tools.yaml (HTTP $HTTP_CODE). Check CROSS_REPO_TOKEN secret."
+            echo "$RESPONSE" | head -5
+            exit 1
+          fi
+          echo "$RESPONSE" | head -n -1 | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          echo "Manifest fetched: $(wc -l < mcp-tools.yaml) lines"
 
       - name: Fetch manifest (api-spec-changed)
         if: github.event.action == 'api-spec-changed'
         run: |
-          curl -sf -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
-            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml" \
-            | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          echo "Fetching mcp-tools.yaml from listbee-dev/listbee..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer ${{ secrets.CROSS_REPO_TOKEN }}" \
+            "https://api.github.com/repos/listbee-dev/listbee/contents/app/mcp-tools.yaml")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to fetch mcp-tools.yaml (HTTP $HTTP_CODE). Check CROSS_REPO_TOKEN secret."
+            echo "$RESPONSE" | head -5
+            exit 1
+          fi
+          echo "$RESPONSE" | head -n -1 | jq -r '.content' | tr -d '\n' | base64 -d > mcp-tools.yaml
+          echo "Manifest fetched: $(wc -l < mcp-tools.yaml) lines"
 
       - name: Regenerate schemas
         run: npm run generate
