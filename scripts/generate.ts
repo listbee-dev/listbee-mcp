@@ -309,7 +309,7 @@ function generate(spec: OpenApiSpec, manifest: ManifestFile): GeneratedTool[] {
       const raw = jsonSchemaToZod(combinedSchema, {
         module: "none",
         noImport: true,
-        zodVersion: 3,
+        zodVersion: 4,
       });
       zodCode = addStrict(raw);
     }
