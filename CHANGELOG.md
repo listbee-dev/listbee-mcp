@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-08
+
 ### Changed
 - Updated OpenAPI spec (added plans schemas)
 
