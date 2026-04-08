@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-08T14:41:43.459Z
-// sha256: bae48d557a982276469fd85c5c1e3106b53cd648ca6879676a29f4a58eccd4d3
+// generated_at: 2026-04-08T17:14:27.683Z
+// sha256: 64762bbe63ae05c2e17331cc1d2a9620f7ed1abe272645df9f56b22c49e2124c
 
 export interface ToolMeta {
   operationId: string;
@@ -89,7 +89,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_order",
     method: "GET",
     path: "/v1/orders/{order_id}",
-    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. PAID is terminal for external orders where delivery is handled outside ListBee. FULFILLED means content was delivered via ListBee or the order was explicitly closed via POST /fulfill. Managed listings auto-fulfill on payment.",
+    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → PROCESSING (generated only) → FULFILLED. Check content_type to understand the delivery model: static = ListBee auto-fulfilled on payment; generated = order enters PROCESSING, call POST /fulfill with generated content; webhook = stays PAID, seller's system handles delivery externally. FULFILLED means content was delivered via ListBee or the order was explicitly closed.",
   },
   list_api_keys: {
     operationId: "list_api_keys",
@@ -113,7 +113,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "list_orders",
     method: "GET",
     path: "/v1/orders",
-    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) → PAID (payment confirmed, order.paid webhook fires) → FULFILLED (content delivered via ListBee or order closed via POST /fulfill). PAID is terminal for external orders where delivery is handled outside ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Managed listings auto-fulfill on payment. External listings stay in PAID until the seller calls POST /fulfill.",
+    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) → PAID (payment confirmed, order.paid webhook fires) → PROCESSING (only for generated listings: agent is generating content) → FULFILLED (content delivered or order closed). Static listings auto-fulfill on payment. Generated listings enter PROCESSING until POST /fulfill is called. Webhook listings stay PAID — the seller's system handles delivery externally. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Use content_type on each order to branch your handling logic.",
   },
   list_webhook_events: {
     operationId: "list_webhook_events",
