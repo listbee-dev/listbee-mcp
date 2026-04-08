@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-08
+
 ### Changed
 - Regenerate schemas for content-type model (fulfillment→content_type, new order fields)
 - Fix schema generator to emit Zod v4-compatible `z.record(z.string(), z.any())` calls
