@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Remove `content_type` from listing and order schemas
+- Remove `handed_off_at` and `processing`/`handed_off` order statuses
+
+### Added
+- Add `fulfillment_url` to listing schemas (create and update)
+- Add `has_deliverables` and `actions` to order schemas
+
 ## [0.8.1] - 2026-04-08
 
 ### Changed

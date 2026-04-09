@@ -3,7 +3,7 @@
   "info": {
     "title": "ListBee",
     "summary": "One API call to sell and deliver digital content.",
-    "description": "ListBee is a commerce API for AI agents, n8n workflows, and automation platforms. Create a listing with a title, price, and content \u2014 get back a checkout URL. Buyers visit the URL, pay via Stripe, and receive the content automatically.\n\n## Quick Start\n1. `POST /v1/auth/otp` with your email \u2014 receive verification code\n2. `POST /v1/auth/otp/verify` with the code \u2014 receive short-lived access token (`at_...`, 24h)\n3. `POST /v1/api-keys` with `Authorization: Bearer at_...` \u2014 receive permanent API key (`lb_...`)\n4. `POST /v1/listings` with title + price + content \u2014 use `Authorization: Bearer lb_...`\n5. Share the checkout URL\n\n## Authentication\nTwo token types:\n- **Access token** (`at_` prefix): short-lived (24h), returned by `verify_otp`. Use to bootstrap (create API keys).\n- **API key** (`lb_` prefix): permanent, returned by `create_api_key`. Use for all ongoing API calls.\n\nBoth are passed as: `Authorization: Bearer <token>`",
+    "description": "ListBee is a commerce API for AI agents, n8n workflows, and automation platforms. Create a listing with a title, price, and content \u2014 get back a checkout URL. Buyers visit the URL, pay via Stripe, and receive the content automatically.\n\n## Quick Start\n1. Sign up at [console.listbee.so](https://console.listbee.so) \u2014 creates your account and first API key\n2. `POST /v1/listings` with title + price + content \u2014 use `Authorization: Bearer lb_...`\n3. Share the checkout URL with buyers\n\n## Authentication\nAll API requests require an API key (`lb_` prefix) passed as: `Authorization: Bearer lb_...`\n\nCreate and manage API keys in the [developer console](https://console.listbee.so).",
     "version": "1.0.0"
   },
   "servers": [
@@ -645,7 +645,7 @@
             }
           },
           "422": {
-            "description": "Validation error (code: `validation_error`). Check `detail` for specifics: price must be positive, slug already exists, static content_type requires a deliverable before publishing, deliverable URL unreachable or unsupported format.",
+            "description": "Validation error (code: `validation_error`). Check `detail` for specifics: price must be positive, slug already exists, deliverable URL unreachable or unsupported format.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1008,13 +1008,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Listing ID.",
+              "description": "Listing ID (lst_ prefixed).",
               "examples": [
                 "lst_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Listing Id"
             },
-            "description": "Listing ID."
+            "description": "Listing ID (lst_ prefixed)."
           }
         ],
         "requestBody": {
@@ -1099,13 +1099,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Listing ID.",
+              "description": "Listing ID (lst_ prefixed).",
               "examples": [
                 "lst_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Listing Id"
             },
-            "description": "Listing ID."
+            "description": "Listing ID (lst_ prefixed)."
           }
         ],
         "requestBody": {
@@ -1273,13 +1273,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Listing ID.",
+              "description": "Listing ID (lst_ prefixed).",
               "examples": [
                 "lst_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Listing Id"
             },
-            "description": "Listing ID."
+            "description": "Listing ID (lst_ prefixed)."
           },
           {
             "name": "deliverable_id",
@@ -1287,13 +1287,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Deliverable ID.",
+              "description": "Deliverable ID (del_ prefixed).",
               "examples": [
                 "del_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Deliverable Id"
             },
-            "description": "Deliverable ID."
+            "description": "Deliverable ID (del_ prefixed)."
           }
         ],
         "responses": {
@@ -1432,7 +1432,7 @@
           "Orders"
         ],
         "summary": "List orders",
-        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started, buyer data captured) \u2192 PAID (payment confirmed, order.paid webhook fires) \u2192 PROCESSING (only for generated listings: agent is generating content) \u2192 FULFILLED (content delivered or order closed). Static listings auto-fulfill on payment. Generated listings enter PROCESSING until POST /fulfill is called. Webhook listings stay PAID \u2014 the seller's system handles delivery externally. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Use content_type on each order to branch your handling logic.",
+        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started) \u2192 PAID (payment confirmed) \u2192 FULFILLED (content delivered). PAID is the resting state for orders where the seller handles delivery externally. Call POST /orders/{id}/fulfill to deliver content via ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Each order includes actions \u2014 PAID orders show FULFILL_ORDER (suggested) for optional ListBee delivery.",
         "operationId": "list_orders",
         "security": [
           {
@@ -1455,7 +1455,7 @@
               ],
               "description": "Filter orders by status.",
               "examples": [
-                "completed"
+                "paid"
               ],
               "title": "Status"
             },
@@ -1623,7 +1623,7 @@
           "Orders"
         ],
         "summary": "Get order",
-        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 PROCESSING (generated only) \u2192 FULFILLED. Check content_type to understand the delivery model: static = ListBee auto-fulfilled on payment; generated = order enters PROCESSING, call POST /fulfill with generated content; webhook = stays PAID, seller's system handles delivery externally. FULFILLED means content was delivered via ListBee or the order was explicitly closed.",
+        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. PAID orders include a FULFILL_ORDER action \u2014 call POST /fulfill to deliver content via ListBee. If the listing had deliverables, they were auto-delivered on payment (order is already FULFILLED). If not, the order stays PAID until /fulfill is called or the seller handles delivery externally.",
         "operationId": "get_order",
         "security": [
           {
@@ -1637,13 +1637,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Order ID.",
+              "description": "Order ID (ord_ prefixed).",
               "examples": [
                 "ord_9xM4kP7nR2qT5wY1"
               ],
               "title": "Order Id"
             },
-            "description": "Order ID."
+            "description": "Order ID (ord_ prefixed)."
           }
         ],
         "responses": {
@@ -1710,13 +1710,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Order ID.",
+              "description": "Order ID (ord_ prefixed).",
               "examples": [
                 "ord_9xM4kP7nR2qT5wY1"
               ],
               "title": "Order Id"
             },
-            "description": "Order ID."
+            "description": "Order ID (ord_ prefixed)."
           }
         ],
         "responses": {
@@ -1768,8 +1768,8 @@
         "tags": [
           "Orders"
         ],
-        "summary": "Fulfill Order",
-        "description": "Push generated content to a generated-type order and deliver it to the buyer. Call this after your agent finishes generating content in response to an order.paid webhook. ListBee creates an access grant from the provided deliverables, emails the buyer a download link, and transitions the order from processing to fulfilled. Only valid for orders in processing state with content_type=generated. Idempotent: returns 200 with the fulfilled order if already fulfilled.",
+        "summary": "Fulfill order",
+        "description": "Deliver content to the buyer via ListBee. Call this with deliverables after your system generates or prepares content. ListBee creates an access grant, emails the buyer a download link, and transitions the order to FULFILLED. Valid for any order in PAID status. Idempotent: calling on an already-FULFILLED order returns the order unchanged (body ignored, no second email).",
         "operationId": "fulfill_order",
         "security": [
           {
@@ -1783,13 +1783,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Order ID.",
+              "description": "Order ID (ord_ prefixed).",
               "examples": [
                 "ord_9xM4kP7nR2qT5wY1"
               ],
               "title": "Order Id"
             },
-            "description": "Order ID."
+            "description": "Order ID (ord_ prefixed)."
           }
         ],
         "requestBody": {
@@ -1813,11 +1813,14 @@
               }
             }
           },
+          "401": {
+            "description": "Invalid or missing API key."
+          },
           "404": {
             "description": "Order not found."
           },
           "409": {
-            "description": "Order is not in processing state, or content_type is not generated."
+            "description": "Order is not in PAID status."
           },
           "422": {
             "description": "Validation Error",
@@ -1838,7 +1841,7 @@
           "Utility"
         ],
         "summary": "Ping",
-        "description": "Authenticated connectivity check. Returns ok if the API key is valid and the API is reachable.",
+        "description": "Connectivity check. Returns ok if the API is reachable. No authentication required.",
         "operationId": "ping",
         "responses": {
           "200": {
@@ -1976,7 +1979,7 @@
           "Webhooks"
         ],
         "summary": "Create webhook",
-        "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, content_type, payment_status, checkout_data, timestamps, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
+        "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, has_deliverables, payment_status, checkout_data, listing_metadata, timestamps, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
         "operationId": "create_webhook",
         "requestBody": {
           "content": {
@@ -2540,7 +2543,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier",
+            "description": "Unique account ID (acc_ prefixed).",
             "examples": [
               "acc_7kQ2xY9mN3pR5tW1"
             ]
@@ -2742,6 +2745,13 @@
               "api"
             ]
           },
+          "priority": {
+            "$ref": "#/components/schemas/ActionPriority",
+            "description": "Whether this action blocks progress (required) or is an available opportunity (suggested).",
+            "examples": [
+              "required"
+            ]
+          },
           "message": {
             "type": "string",
             "title": "Message",
@@ -2759,6 +2769,7 @@
         "required": [
           "code",
           "kind",
+          "priority",
           "message",
           "resolve"
         ],
@@ -2770,10 +2781,10 @@
           "connect_stripe",
           "enable_charges",
           "update_billing",
-          "attach_deliverable",
-          "configure_webhook",
+          "configure_fulfillment",
           "publish_listing",
-          "webhook_disabled"
+          "webhook_disabled",
+          "fulfill_order"
         ],
         "title": "ActionCode"
       },
@@ -2784,6 +2795,14 @@
           "human"
         ],
         "title": "ActionKind"
+      },
+      "ActionPriority": {
+        "type": "string",
+        "enum": [
+          "required",
+          "suggested"
+        ],
+        "title": "ActionPriority"
       },
       "ActionResolve": {
         "properties": {
@@ -2963,9 +2982,9 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "API key entity ID",
+            "description": "API key entity ID (lbk_ prefixed).",
             "examples": [
-              "ak_7kQ2xY9mN3pR5tW1vB8a"
+              "lbk_7kQ2xY9mN3pR5tW1vB8a"
             ]
           },
           "name": {
@@ -3121,22 +3140,12 @@
       "CheckoutFieldType": {
         "type": "string",
         "enum": [
-          "address",
           "text",
           "select",
           "date"
         ],
         "title": "CheckoutFieldType",
         "description": "Types of fields that can be collected at checkout."
-      },
-      "ContentType": {
-        "type": "string",
-        "enum": [
-          "static",
-          "generated",
-          "webhook"
-        ],
-        "title": "ContentType"
       },
       "CreateApiKeyRequest": {
         "properties": {
@@ -3196,11 +3205,19 @@
               "Premium Stock Picks"
             ]
           },
-          "content_type": {
-            "$ref": "#/components/schemas/ContentType",
-            "description": "Content type determines post-payment behavior. static: ListBee delivers pre-attached content. generated: agent creates content after payment, ListBee delivers. webhook: ListBee fires order.paid, seller's system takes over.",
+          "fulfillment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfillment Url",
+            "description": "Callback URL \u2014 ListBee POSTs an enriched payload here when someone buys this listing. Use for stateless agent fulfillment: metadata + checkout_data round-tripped in the callback. Must be HTTPS in production.",
             "examples": [
-              "static"
+              "https://my-agent.com/fulfill"
             ]
           },
           "price": {
@@ -3520,7 +3537,6 @@
         "type": "object",
         "required": [
           "name",
-          "content_type",
           "price"
         ],
         "title": "CreateListingRequest",
@@ -3631,7 +3647,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier.",
+            "description": "Unique customer ID (cus_ prefixed).",
             "examples": [
               "cus_7kQ2xY9mN3pR5tW1vB8a01"
             ]
@@ -4163,7 +4179,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier",
+            "description": "Unique listing ID (lst_ prefixed).",
             "examples": [
               "lst_7kQ2xY9mN3pR5tW1vB8a"
             ]
@@ -4259,13 +4275,29 @@
             },
             "type": "array",
             "title": "Deliverables",
-            "description": "Deliverables pre-attached to this listing. Required for static content_type \u2014 ListBee delivers these to buyers on payment. Empty for generated (content created per-order) and webhook (seller handles delivery) listings."
+            "description": "Deliverables pre-attached to this listing. When present, ListBee auto-delivers them to buyers on payment. When empty, payment fires webhooks and fulfillment_url \u2014 your system handles delivery."
           },
-          "content_type": {
-            "$ref": "#/components/schemas/ContentType",
-            "description": "Content type: static (pre-attached content, ListBee delivers), generated (content created after payment, ListBee delivers), webhook (paid order handed to seller's system).",
+          "fulfillment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfillment Url",
+            "description": "Per-listing callback URL. ListBee POSTs enriched order payload here on purchase.",
             "examples": [
-              "static"
+              "https://my-agent.com/fulfill"
+            ]
+          },
+          "has_deliverables": {
+            "type": "boolean",
+            "title": "Has Deliverables",
+            "description": "True if deliverables are attached and have content. Determines post-payment behavior: true = ListBee auto-delivers, false = webhook/fulfillment_url fires.",
+            "examples": [
+              true
             ]
           },
           "checkout_schema": {
@@ -4444,7 +4476,7 @@
           },
           "status": {
             "$ref": "#/components/schemas/ListingStatus",
-            "description": "Current listing status",
+            "description": "Current listing status. Values: draft (editable, not yet live), published (live, accepting orders), deleted (soft-deleted).",
             "examples": [
               "published"
             ]
@@ -4517,7 +4549,7 @@
           "name",
           "highlights",
           "price",
-          "content_type",
+          "has_deliverables",
           "has_cover",
           "status",
           "readiness",
@@ -4608,7 +4640,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier",
+            "description": "Unique order ID (ord_ prefixed).",
             "examples": [
               "ord_9xM4kP7nR2qT5wY1"
             ]
@@ -4647,7 +4679,7 @@
           },
           "status": {
             "$ref": "#/components/schemas/OrderStatus",
-            "description": "Current order status. Full lifecycle: PENDING (checkout started) \u2192 PAID (payment confirmed) \u2192 PROCESSING (generated listings only: agent generating content) \u2192 FULFILLED (content delivered or order closed). Terminal error states: CANCELED (payment failed/abandoned), FAILED (system error). Use content_type to determine which statuses apply: static skips PROCESSING and auto-fulfills; generated enters PROCESSING until POST /fulfill is called; webhook stays PAID \u2014 delivery handled externally.",
+            "description": "Current order status. Lifecycle: PENDING (checkout started) \u2192 PAID (payment confirmed) \u2192 FULFILLED (content delivered by ListBee). Terminal error states: CANCELED (payment failed/abandoned), FAILED (system error). PAID is the natural resting state for orders where the seller handles delivery externally. Call POST /fulfill to deliver content via ListBee and transition to FULFILLED.",
             "examples": [
               "paid"
             ]
@@ -4671,12 +4703,12 @@
               }
             ]
           },
-          "content_type": {
-            "type": "string",
-            "title": "Content Type",
-            "description": "Content type of the listing at the time of purchase. Determines the delivery model: static = ListBee auto-delivered pre-attached content on payment; generated = your system creates content after payment and pushes it via POST /fulfill; webhook = order.paid fired, your system handles delivery entirely. Use this to branch post-payment logic without re-fetching the listing.",
+          "has_deliverables": {
+            "type": "boolean",
+            "title": "Has Deliverables",
+            "description": "Whether the listing had deliverables at purchase time. True = auto-delivered by ListBee. False = handled by seller/agent.",
             "examples": [
-              "static"
+              false
             ]
           },
           "payment_status": {
@@ -4726,29 +4758,28 @@
               }
             ]
           },
-          "handed_off_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Handed Off At",
-            "description": "Timestamp when the order was handed off to the seller's external system via order.paid webhook. Only set for webhook content_type listings. Null for static and generated listings.",
-            "examples": [
-              "2026-04-02T14:31:00Z"
-            ]
-          },
           "deliverables": {
             "items": {
               "$ref": "#/components/schemas/DeliverableResponse"
             },
             "type": "array",
             "title": "Deliverables",
-            "description": "Deliverables attached to this order. For static listings: auto-populated from the listing's deliverables when payment is confirmed. For generated listings: populated when your system calls POST /fulfill with the generated content. For webhook listings: always empty \u2014 your system delivers content outside ListBee."
+            "description": "Deliverables attached to this order. Auto-populated from listing deliverables on payment, or populated when POST /fulfill is called."
+          },
+          "actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Action"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actions",
+            "description": "Available actions for this order. Only present when actions exist. PAID orders show FULFILL_ORDER (suggested) \u2014 deliver content to buyer via ListBee. Omitted for FULFILLED, CANCELED, FAILED orders."
           },
           "stripe_payment_intent_id": {
             "type": "string",
@@ -4900,7 +4931,7 @@
           "amount",
           "currency",
           "status",
-          "content_type",
+          "has_deliverables",
           "payment_status",
           "stripe_payment_intent_id",
           "created_at"
@@ -4912,9 +4943,7 @@
         "enum": [
           "pending",
           "paid",
-          "processing",
           "fulfilled",
-          "handed_off",
           "canceled",
           "failed"
         ],
@@ -5292,18 +5321,19 @@
       },
       "UpdateListingRequest": {
         "properties": {
-          "content_type": {
+          "fulfillment_url": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ContentType"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Content type determines post-payment delivery behavior. Only changeable while in draft status. static: ListBee delivers pre-attached deliverables automatically on payment. generated: order enters PROCESSING state after payment \u2014 call POST /fulfill with the generated content to deliver it. webhook: order.paid webhook fires, your system handles delivery entirely. Switching away from static automatically removes any attached deliverables.",
+            "title": "Fulfillment Url",
+            "description": "Callback URL \u2014 ListBee POSTs here on purchase. Set to null to remove. Updating this field rotates the fulfillment_secret.",
             "examples": [
-              "static"
+              "https://my-agent.com/fulfill"
             ]
           },
           "name": {
@@ -5848,7 +5878,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique event ID",
+            "description": "Unique webhook event ID (evt_ prefixed).",
             "examples": [
               "evt_7kQ2xY9mN3pR5tW1"
             ]
@@ -6088,7 +6118,7 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique identifier",
+            "description": "Unique webhook ID (wh_ prefixed).",
             "examples": [
               "wh_3mK8nP2qR5tW7xY1"
             ]
