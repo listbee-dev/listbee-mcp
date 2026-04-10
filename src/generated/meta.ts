@@ -2,7 +2,7 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-09T21:33:36.201Z
+// generated_at: 2026-04-09T21:34:57.337Z
 // sha256: 54affa8dfc9068cbc85e7dd71fd852bd940f66c586e6a3aeeaa97ea23b0350f0
 
 export interface ToolMeta {
