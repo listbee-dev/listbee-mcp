@@ -83,6 +83,9 @@ const uploadFileSchema = z.object({
   filename: z.string().optional().describe(
     "Filename for the uploaded file. If omitted, derived from the URL.",
   ),
+  purpose: z.enum(["deliverable", "cover", "avatar"]).optional().describe(
+    "File purpose — controls size and MIME limits. 'deliverable' (default, up to 25 MB): listing content. 'cover' (up to 5 MB): listing cover image. 'avatar' (up to 2 MB): store avatar.",
+  ),
 });
 
 /**

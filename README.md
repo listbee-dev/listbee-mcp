@@ -208,7 +208,7 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 
 | Tool | Description |
 |------|-------------|
-| `upload_file` | Upload a file to ListBee. Returns a token to use in `set_deliverables`. |
+| `upload_file` | Upload a file to ListBee. Accepts a `purpose` parameter: `deliverable` (default, listing content), `cover` (listing image), or `avatar` (store avatar). Returns a file token to use in `set_deliverables`, `create_listing`/`update_listing` (as `cover`), or `update_store` (as `avatar`). |
 
 ### Stripe
 

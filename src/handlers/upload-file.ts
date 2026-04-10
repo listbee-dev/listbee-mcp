@@ -27,6 +27,7 @@ export async function handleUploadFile(
 ): Promise<unknown> {
   const url = args.url as string;
   const providedFilename = args.filename as string | undefined;
+  const purpose = args.purpose as string | undefined;
 
   // Fetch the file from the provided URL
   const res = await fetch(url);
@@ -42,7 +43,13 @@ export async function handleUploadFile(
   // Derive filename from URL if not provided
   const filename = providedFilename ?? deriveFilename(url) ?? "uploaded-file";
 
-  // Use File to preserve filename in multipart upload
-  const file = new File([buffer], filename);
-  return client.files.upload(file);
+  // Build multipart form data — include purpose if provided
+  const formData = new FormData();
+  formData.append("file", new File([buffer], filename));
+  if (purpose) {
+    formData.append("purpose", purpose);
+  }
+
+  // Use postMultipart directly to pass purpose (files.upload in SDK < 0.15 doesn't support it)
+  return (client as unknown as { postMultipart: (path: string, data: FormData) => Promise<unknown> }).postMultipart("/v1/files", formData);
 }

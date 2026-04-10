@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- `upload_file` tool: added `purpose` parameter (`deliverable` | `cover` | `avatar`) — controls file size and MIME limits enforced by the API
+- `update_store` tool: `avatar_url` parameter renamed to `avatar` — now accepts a file token from `upload_file` (with `purpose=avatar`) instead of a URL
+- `StoreResponse`: `avatar_url` field replaced by `has_avatar` boolean
+
 ## [0.10.0] - 2026-04-10
 
 ### Added

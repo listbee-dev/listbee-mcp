@@ -361,7 +361,7 @@
           "Files"
         ],
         "summary": "Upload file",
-        "description": "Upload a file for use as a listing deliverable. Returns a file token valid for 24 hours. Pass the token to PUT /v1/listings/{listing_id}/deliverables or POST /v1/orders/{id}/fulfill to attach the file. Max size: 25 MB. Accepted types: PDF, EPUB, ZIP, images, audio, video, Office documents.",
+        "description": "Upload a file and receive a token valid for 24 hours. Pass the token to set_deliverables, or as 'cover'/'avatar' when creating or updating a listing or account.\n\n**Per-purpose limits:**\n- `deliverable` \u2014 up to 25 MB; PDF, EPUB, ZIP, images, audio, video, Office documents.\n- `cover` \u2014 up to 5 MB; JPEG, PNG, WebP, or GIF.\n- `avatar` \u2014 up to 2 MB; JPEG, PNG, WebP, or GIF.\n\nMIME type is verified against magic bytes. Mismatches are rejected.",
         "operationId": "upload_file",
         "requestBody": {
           "content": {
@@ -395,7 +395,7 @@
             }
           },
           "413": {
-            "description": "File exceeds 25 MB.",
+            "description": "File exceeds the size limit for the given purpose.",
             "content": {
               "application/json": {
                 "schema": {
@@ -405,7 +405,7 @@
             }
           },
           "422": {
-            "description": "Unsupported file type or missing file.",
+            "description": "Unsupported file type, invalid purpose, or missing file.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1725,7 +1725,7 @@
           "store"
         ],
         "summary": "Update Store",
-        "description": "Update store brand info: display_name, bio, avatar_url, slug.",
+        "description": "Update store brand info: display_name, bio, avatar (file token from POST /v1/files), slug. Response includes readiness status \u2014 check actions for what's needed before selling.",
         "operationId": "update_store",
         "requestBody": {
           "content": {
@@ -2963,6 +2963,15 @@
             "contentMediaType": "application/octet-stream",
             "title": "File",
             "description": "The file to upload"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose",
+            "description": "File purpose: 'deliverable' (listing content), 'cover' (listing image), 'avatar' (account image). Defaults to 'deliverable'.",
+            "default": "deliverable",
+            "examples": [
+              "deliverable"
+            ]
           }
         },
         "type": "object",
@@ -4039,7 +4048,7 @@
           "purpose": {
             "type": "string",
             "title": "Purpose",
-            "description": "File purpose: 'deliverable' (listing content), 'cover' (listing cover image), or 'avatar' (account avatar).",
+            "description": "File purpose. Determines size and type limits: 'avatar' (2 MB, JPEG/PNG/WebP/GIF), 'cover' (5 MB, JPEG/PNG/WebP/GIF), 'deliverable' (25 MB, documents/images/audio/video).",
             "examples": [
               "deliverable"
             ]
@@ -5332,19 +5341,13 @@
               "We make great things."
             ]
           },
-          "avatar_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatar Url",
-            "description": "Store avatar image URL.",
+          "has_avatar": {
+            "type": "boolean",
+            "title": "Has Avatar",
+            "description": "True if an avatar image has been uploaded.",
+            "default": false,
             "examples": [
-              null
+              false
             ]
           },
           "url": {
@@ -5417,7 +5420,7 @@
               "We make great things."
             ]
           },
-          "avatar_url": {
+          "avatar": {
             "anyOf": [
               {
                 "type": "string"
@@ -5426,10 +5429,10 @@
                 "type": "null"
               }
             ],
-            "title": "Avatar Url",
-            "description": "Store avatar image URL",
+            "title": "Avatar",
+            "description": "File token from POST /v1/files with purpose=avatar. Upload an image first, then pass the file token here. Set to empty string to remove the avatar.",
             "examples": [
-              "https://example.com/avatar.jpg"
+              "file_7kQ2xY9mN3pR5tW1vB8a01"
             ]
           },
           "slug": {
