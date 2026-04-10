@@ -21,6 +21,8 @@ tools:
       significantly better. Fill in as many fields as you can: description, tagline,
       highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling
       copy. The product page buyers see is built entirely from these fields.
+      Fulfillment is implicit: attach deliverables for auto-delivery, set fulfillment_url
+      for agent callback, or handle via webhooks. No content_type field needed.
     hints:
       - "Always check readiness.sellable in the response"
       - "readiness.next tells you the highest-priority action to take"
@@ -79,12 +81,14 @@ tools:
     category: listings
     priority: 10
     status: active
-    when_to_use: "Use when the user wants the listing to go live and readiness indicates it can be published."
+    when_to_use: "Use when the user wants the listing to go live."
     description: >
       Publish a listing so buyers can access the product page.
-      Only works when readiness.publishable is true.
+      No Stripe required — the product page goes live immediately.
+      The buy button activates once Stripe is connected.
     hints:
-      - "Check readiness first — this fails if listing is not publishable"
+      - "Product page goes live immediately — CTA disabled until Stripe connected"
+      - "Check readiness.sellable after publish to see if payments work"
 
   - type: operation
     operation_id: set_deliverables
@@ -95,7 +99,7 @@ tools:
     when_to_use: "Use after creating a listing to attach digital content for automatic delivery."
     description: >
       Set digital deliverables (files, URLs, or text) on a listing.
-      Required for managed fulfillment mode.
+      Listings with deliverables auto-deliver to buyers on purchase.
     input_example:
       deliverables:
         - type: "url"
@@ -108,7 +112,7 @@ tools:
     category: listings
     priority: 3
     status: active
-    when_to_use: "Use when switching a listing from managed to external fulfillment."
+    when_to_use: "Use when removing all deliverables from a listing (switches to agent-fulfilled or webhook delivery)."
 
   - type: operation
     operation_id: delete_listing
@@ -158,9 +162,9 @@ tools:
     description: >
       Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee —
       creates an access grant and emails the buyer. Omit deliverables to mark the order as complete
-      without delivering content (close-out for orders handled externally).
+      without delivering content (for externally fulfilled orders).
     hints:
-      - "Only works on orders in PAID state for listings without pre-set deliverables"
+      - "Only works on orders in PAID state"
       - "Fires order.fulfilled webhook"
       - "Deliverables are optional — omit for close-out"
     input_example:
@@ -239,10 +243,10 @@ tools:
     category: account
     priority: 5
     status: active
-    when_to_use: "Use to update account profile — display name, bio, avatar."
+    when_to_use: "Use to update account-level settings (GA tracking, notification preferences)."
     description: >
-      Update the account's display name, bio, or avatar. These appear on product pages
-      as the seller identity.
+      Update account settings. Brand info (display_name, bio, avatar) is on the Store,
+      not the Account. Use update_store for branding.
 
   - type: operation
     operation_id: delete_account
@@ -256,40 +260,34 @@ tools:
     hints:
       - "This is destructive and irreversible — confirm with the user first"
 
-  # --- API Keys ---
+  # --- Store ---
   - type: operation
-    operation_id: list_api_keys
-    name: list_api_keys
-    category: api_keys
-    priority: 4
+    operation_id: get_store
+    name: get_store
+    category: store
+    priority: 9
     status: active
-    when_to_use: "Use to see all API keys for the account."
+    when_to_use: "Use to check your store's brand info and sellability status."
     description: >
-      List all API keys. Shows key prefixes and names but not full key values
-      (those are only shown at creation time).
-
-  - type: operation
-    operation_id: create_api_key
-    name: create_api_key
-    category: api_keys
-    priority: 4
-    status: active
-    when_to_use: "Use when the user needs an additional API key for agents or integrations."
-    description: >
-      Create a permanent API key (lb_ prefixed). The returned key is permanent — use it
-      for all subsequent API calls. Account creation is handled via the ListBee Console.
+      Get the current store's brand info (display_name, bio, avatar, slug) and
+      readiness. Store is determined by your API key — each key belongs to one store.
     hints:
-      - "The returned lb_ key is permanent — store it and use for all future calls"
+      - "readiness.sellable tells you if listings can accept payment"
+      - "If not sellable, readiness.actions tells you what's needed (usually Stripe)"
+      - "store.url is the store landing page where all your listings appear"
 
   - type: operation
-    operation_id: delete_api_key
-    name: delete_api_key
-    category: api_keys
-    priority: 2
+    operation_id: update_store
+    name: update_store
+    category: store
+    priority: 5
     status: active
-    when_to_use: "Use to revoke an API key that is no longer needed or compromised."
+    when_to_use: "Use to update your store's brand — display name, bio, avatar, or slug."
     description: >
-      Delete an API key. The key is immediately revoked and cannot be used again.
+      Update store brand info. These appear on product pages and the store landing page.
+    input_example:
+      display_name: "AI Guides"
+      bio: "Premium guides for modern marketing"
 
   # --- Stripe ---
   - type: operation
@@ -337,12 +335,12 @@ tools:
     category: webhooks
     priority: 8
     status: active
-    when_to_use: "Use when the user needs to receive order notifications at a URL. Required for external fulfillment."
+    when_to_use: "Use when the user needs to receive order notifications at a URL."
     description: >
       Create a webhook endpoint. Specify the URL and which events to receive.
       The webhook secret (whsec_ prefixed) is returned for signature verification.
     hints:
-      - "Required for external fulfillment listings — readiness checks for this"
+      - "Recommended for listings without deliverables — ensures you get notified of orders"
       - "Common events: order.paid, order.fulfilled, order.refunded"
       - "The secret is only shown once at creation"
     input_example:

@@ -28,10 +28,9 @@ export const handlers: Record<string, Handler> = {
   update_account:      (c, a) => c.account.update(a as any),
   delete_account:      (c) => c.account.delete(),
 
-  // API Keys
-  list_api_keys:       (c) => c.apiKeys.list(),
-  create_api_key:      (c, a) => c.apiKeys.create(a as any),
-  delete_api_key:      (c, a) => c.apiKeys.delete(a.key_id as string),
+  // Store
+  get_store:           async (c) => { const r = await c.get('/v1/store'); return r.json(); },
+  update_store:        async (c, a) => { const r = await c.put('/v1/store', a); return r.json(); },
 
   // Stripe
   disconnect_stripe:   (c) => c.stripe.disconnect(),

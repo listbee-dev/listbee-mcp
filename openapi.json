@@ -54,7 +54,7 @@
           "Account"
         ],
         "summary": "Update account",
-        "description": "Update account profile and settings. Supports display_name, bio, avatar (file token from POST /v1/files), and ga_measurement_id.",
+        "description": "Update account settings. Supports ga_measurement_id and notify_orders.",
         "operationId": "update_account",
         "requestBody": {
           "content": {
@@ -131,174 +131,6 @@
             "HTTPBearer": []
           }
         ]
-      }
-    },
-    "/v1/api-keys": {
-      "get": {
-        "tags": [
-          "API Keys"
-        ],
-        "summary": "List API keys",
-        "description": "List all API keys for the authenticated account with full key values.",
-        "operationId": "list_api_keys",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiKeyListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "API Keys"
-        ],
-        "summary": "Create API key",
-        "description": "Create a new permanent API key (`lb_` prefix). Use this to provision separate keys for different agents or integrations. The returned key value is only shown once at creation time \u2014 store it securely.",
-        "operationId": "create_api_key",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateApiKeyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiKeyResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/v1/api-keys/{key_id}": {
-      "delete": {
-        "tags": [
-          "API Keys"
-        ],
-        "summary": "Delete API key",
-        "description": "Revoke an API key. Cannot delete the key you are currently authenticating with.",
-        "operationId": "delete_api_key",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "key_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "API key ID.",
-              "examples": [
-                "lbk_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Key Id"
-            },
-            "description": "API key ID."
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "API key not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Cannot delete the key used for this request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/v1/customers": {
@@ -1862,6 +1694,78 @@
         ]
       }
     },
+    "/v1/store": {
+      "get": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Get Store",
+        "description": "Get the current store's brand info and readiness. Store is determined by your API key.",
+        "operationId": "get_store",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "store"
+        ],
+        "summary": "Update Store",
+        "description": "Update store brand info: display_name, bio, avatar_url, slug.",
+        "operationId": "update_store",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/account/stripe/connect": {
       "post": {
         "tags": [
@@ -2463,6 +2367,172 @@
         }
       }
     },
+    "/v1/bootstrap": {
+      "post": {
+        "tags": [
+          "Bootstrap"
+        ],
+        "summary": "Start bootstrap \u2014 send OTP",
+        "description": "Step 1 of 3. Send a one-time passcode to the provided email. Returns a session ID to use in step 2 (POST /v1/bootstrap/verify). Public endpoint \u2014 no API key required. Use this to create a new account programmatically without the developer console.",
+        "operationId": "bootstrap_start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Blocked or disposable email domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "OTP rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bootstrap/verify": {
+      "post": {
+        "tags": [
+          "Bootstrap"
+        ],
+        "summary": "Verify OTP \u2014 confirm identity",
+        "description": "Step 2 of 3. Verify the OTP sent in step 1. On success, the session is marked verified and an account is created if this is a new email. Returns the session ID to use in step 3 (POST /v1/bootstrap/store). Public endpoint \u2014 no API key required.",
+        "operationId": "bootstrap_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired session / invalid OTP code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Verification attempt rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bootstrap/store": {
+      "post": {
+        "tags": [
+          "Bootstrap"
+        ],
+        "summary": "Create store \u2014 final bootstrap step",
+        "description": "Step 3 of 3. Create a store on a verified bootstrap session. Returns the store object with a one-time `api_key` \u2014 store this immediately, it will not be shown again. Use the API key as `Authorization: Bearer lb_...` for all subsequent API calls. Public endpoint \u2014 no API key required.",
+        "operationId": "bootstrap_store",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapStoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Session not verified or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/plans": {
       "get": {
         "tags": [
@@ -2556,44 +2626,6 @@
               "seller@example.com"
             ]
           },
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name",
-            "description": "Seller name shown on product pages.",
-            "examples": [
-              "Acme Digital"
-            ]
-          },
-          "bio": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bio",
-            "description": "Short seller bio shown on product pages.",
-            "examples": [
-              "We create premium digital tools for modern marketers."
-            ]
-          },
-          "has_avatar": {
-            "type": "boolean",
-            "title": "Has Avatar",
-            "description": "true if avatar image exists. Upload via POST /v1/files, set via PUT /v1/account.",
-            "examples": [
-              true
-            ]
-          },
           "plan": {
             "type": "string",
             "title": "Plan",
@@ -2683,7 +2715,6 @@
         "required": [
           "id",
           "email",
-          "has_avatar",
           "plan",
           "fee_rate",
           "billing_status",
@@ -2916,121 +2947,6 @@
         "title": "AddDeliverableRequest",
         "description": "Add a single deliverable to a listing."
       },
-      "ApiKeyListResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "list",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "list",
-            "examples": [
-              "list"
-            ]
-          },
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/ApiKeyResponse"
-            },
-            "type": "array",
-            "title": "Data",
-            "description": "List of API keys"
-          },
-          "has_more": {
-            "type": "boolean",
-            "title": "Has More",
-            "description": "Always false \u2014 API keys are not paginated.",
-            "default": false,
-            "examples": [
-              false
-            ]
-          },
-          "cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cursor",
-            "description": "Always null \u2014 API keys are not paginated.",
-            "examples": [
-              null
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "ApiKeyListResponse"
-      },
-      "ApiKeyResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "api_key",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "api_key",
-            "examples": [
-              "api_key"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "API key entity ID (lbk_ prefixed).",
-            "examples": [
-              "lbk_7kQ2xY9mN3pR5tW1vB8a"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Human-readable label",
-            "examples": [
-              "n8n production"
-            ]
-          },
-          "prefix": {
-            "type": "string",
-            "title": "Prefix",
-            "description": "First 8 characters of the key value",
-            "examples": [
-              "lb_abc12"
-            ]
-          },
-          "key": {
-            "type": "string",
-            "title": "Key",
-            "description": "Full API key value. Use as Bearer token for all authenticated requests.",
-            "examples": [
-              "lb_abc123def456ghi789"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "When the key was created",
-            "examples": [
-              "2026-04-01T10:00:00Z"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "prefix",
-          "key",
-          "created_at"
-        ],
-        "title": "ApiKeyResponse"
-      },
       "BlurMode": {
         "type": "string",
         "enum": [
@@ -3054,6 +2970,152 @@
           "file"
         ],
         "title": "Body_upload_file"
+      },
+      "BootstrapRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Account owner email",
+            "examples": [
+              "seller@example.com"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "BootstrapRequest"
+      },
+      "BootstrapResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "bootstrap_session",
+            "title": "Object",
+            "description": "Object type identifier.",
+            "default": "bootstrap_session",
+            "examples": [
+              "bootstrap_session"
+            ]
+          },
+          "session": {
+            "type": "string",
+            "title": "Session",
+            "description": "Bootstrap session ID. Pass to the next step.",
+            "examples": [
+              "sess_abc123"
+            ]
+          },
+          "otp_sent": {
+            "type": "boolean",
+            "title": "Otp Sent",
+            "description": "True when OTP was sent to the email address.",
+            "examples": [
+              true
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "session",
+          "otp_sent"
+        ],
+        "title": "BootstrapResponse"
+      },
+      "BootstrapStoreRequest": {
+        "properties": {
+          "session": {
+            "type": "string",
+            "title": "Session",
+            "description": "Verified session ID from bootstrap step 2",
+            "examples": [
+              "sess_abc123"
+            ]
+          },
+          "store_name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Store Name",
+            "description": "Display name for the store",
+            "examples": [
+              "Acme Agency"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "session",
+          "store_name"
+        ],
+        "title": "BootstrapStoreRequest"
+      },
+      "BootstrapVerifyRequest": {
+        "properties": {
+          "session": {
+            "type": "string",
+            "title": "Session",
+            "description": "Session ID from bootstrap step 1",
+            "examples": [
+              "sess_abc123"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 6,
+            "title": "Code",
+            "description": "6-digit OTP code from email",
+            "examples": [
+              "123456"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "session",
+          "code"
+        ],
+        "title": "BootstrapVerifyRequest"
+      },
+      "BootstrapVerifyResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "bootstrap_session",
+            "title": "Object",
+            "description": "Object type identifier.",
+            "default": "bootstrap_session",
+            "examples": [
+              "bootstrap_session"
+            ]
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "True when OTP was verified successfully.",
+            "examples": [
+              true
+            ]
+          },
+          "session": {
+            "type": "string",
+            "title": "Session",
+            "description": "Verified session ID. Pass to POST /v1/bootstrap/store.",
+            "examples": [
+              "sess_abc123"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "verified",
+          "session"
+        ],
+        "title": "BootstrapVerifyResponse"
       },
       "CheckoutFieldInput": {
         "properties": {
@@ -3146,24 +3208,6 @@
         ],
         "title": "CheckoutFieldType",
         "description": "Types of fields that can be collected at checkout."
-      },
-      "CreateApiKeyRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Human-readable label for this API key.",
-            "examples": [
-              "n8n production",
-              "claude-code"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "CreateApiKeyRequest"
       },
       "CreateListingRequest": {
         "properties": {
@@ -5197,6 +5241,219 @@
         "title": "SetDeliverablesRequest",
         "description": "Replace all deliverables on a listing."
       },
+      "StoreReadiness": {
+        "properties": {
+          "sellable": {
+            "type": "boolean",
+            "title": "Sellable",
+            "description": "True when the store can sell. False means actions are needed.",
+            "examples": [
+              false
+            ]
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/Action"
+            },
+            "type": "array",
+            "title": "Actions",
+            "description": "What's needed to make this store sellable. Empty when sellable is true."
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Code of the highest-priority action. Agents execute this first.",
+            "examples": [
+              "connect_stripe"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "sellable"
+        ],
+        "title": "StoreReadiness"
+      },
+      "StoreResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "store",
+            "title": "Object",
+            "description": "Object type identifier. Always `store`.",
+            "default": "store",
+            "examples": [
+              "store"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique store ID (st_ prefixed).",
+            "examples": [
+              "st_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "Store display name shown to buyers.",
+            "examples": [
+              "Acme Agency"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug",
+            "description": "URL-safe store slug used in checkout URLs.",
+            "examples": [
+              "acme-agency"
+            ]
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "Store bio shown on product pages.",
+            "examples": [
+              "We make great things."
+            ]
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "Store avatar image URL.",
+            "examples": [
+              null
+            ]
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Public store URL.",
+            "examples": [
+              "https://buy.listbee.so/acme-agency"
+            ]
+          },
+          "api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key",
+            "description": "Raw API key, shown once at creation. Use as Bearer token.",
+            "examples": [
+              "lb_abc123"
+            ]
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/StoreReadiness",
+            "description": "Store readiness. Check `actions` for what's needed before you can sell."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "slug",
+          "url",
+          "readiness"
+        ],
+        "title": "StoreResponse"
+      },
+      "StoreUpdateRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "Store display name shown to buyers",
+            "examples": [
+              "Acme Agency"
+            ]
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio",
+            "description": "Store bio shown on product pages",
+            "examples": [
+              "We make great things."
+            ]
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url",
+            "description": "Store avatar image URL",
+            "examples": [
+              "https://example.com/avatar.jpg"
+            ]
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60,
+                "minLength": 3,
+                "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug",
+            "description": "URL-safe store slug used in checkout URLs. Must be 3-60 characters, start and end with alphanumeric, contain only lowercase letters, digits, and hyphens.",
+            "examples": [
+              "acme-agency"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "StoreUpdateRequest"
+      },
       "StripeConnectSessionResponse": {
         "properties": {
           "object": {
@@ -5236,54 +5493,6 @@
       },
       "UpdateAccountRequest": {
         "properties": {
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name",
-            "description": "Seller name shown on product pages. Improves buyer trust and conversion. If not set, buyers see a generic seller label.",
-            "examples": [
-              "Acme Digital",
-              "Sarah's Templates"
-            ]
-          },
-          "bio": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bio",
-            "description": "Short seller bio shown on product pages. Plain text. Helps buyers understand who they're buying from.",
-            "examples": [
-              "We create premium digital tools for modern marketers."
-            ]
-          },
-          "avatar": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatar",
-            "description": "Avatar image file token from POST /v1/files. Replaces any existing avatar. Shown on product pages next to seller name.",
-            "examples": [
-              "file_tok_abc123"
-            ]
-          },
           "ga_measurement_id": {
             "anyOf": [
               {

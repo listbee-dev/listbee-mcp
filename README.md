@@ -148,16 +148,20 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 
 ## Tools
 
-### Account & Auth
+### Account
 
 | Tool | Description |
 |------|-------------|
 | `get_account` | Get the account's full state including readiness and billing status. |
-| `update_account` | Update display name, bio, or avatar. These appear on product pages. |
+| `update_account` | Update account-level settings (GA tracking, notification preferences). |
 | `delete_account` | Permanently delete the account and all data. Irreversible. |
-| `create_api_key` | Create a new API key. Full key value returned only once. |
-| `list_api_keys` | List all API keys. Shows prefixes and names, not full values. |
-| `delete_api_key` | Delete and immediately revoke an API key. |
+
+### Store
+
+| Tool | Description |
+|------|-------------|
+| `get_store` | Get store brand info (display name, bio, slug, avatar) and readiness. |
+| `update_store` | Update store brand — display name, bio, avatar, or slug. |
 
 ### Listings
 

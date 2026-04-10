@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-09T21:34:57.337Z
-// sha256: 54affa8dfc9068cbc85e7dd71fd852bd940f66c586e6a3aeeaa97ea23b0350f0
+// generated_at: 2026-04-10T06:07:12.653Z
+// sha256: cce17a2b7727088c0ac3f1182a15231a15cf42c6afb352144f829b07f3e727f5
 
 export interface ToolMeta {
   operationId: string;
@@ -13,17 +13,11 @@ export interface ToolMeta {
 }
 
 export const meta: Record<string, ToolMeta> = {
-  create_api_key: {
-    operationId: "create_api_key",
-    method: "POST",
-    path: "/v1/api-keys",
-    description: "Create a permanent API key (lb_ prefixed). The returned key is permanent — use it for all subsequent API calls. Account creation is handled via the ListBee Console.",
-  },
   create_listing: {
     operationId: "create_listing",
     method: "POST",
     path: "/v1/listings",
-    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields.",
+    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields. Fulfillment is implicit: attach deliverables for auto-delivery, set fulfillment_url for agent callback, or handle via webhooks. No content_type field needed.",
   },
   create_webhook: {
     operationId: "create_webhook",
@@ -36,12 +30,6 @@ export const meta: Record<string, ToolMeta> = {
     method: "DELETE",
     path: "/v1/account",
     description: "Permanently delete the account and all associated data. This is irreversible.",
-  },
-  delete_api_key: {
-    operationId: "delete_api_key",
-    method: "DELETE",
-    path: "/v1/api-keys/{key_id}",
-    description: "Delete an API key. The key is immediately revoked and cannot be used again.",
   },
   delete_listing: {
     operationId: "delete_listing",
@@ -65,7 +53,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "fulfill_order",
     method: "POST",
     path: "/v1/orders/{order_id}/fulfill",
-    description: "Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee — creates an access grant and emails the buyer. Omit deliverables to mark the order as complete without delivering content (close-out for orders handled externally).",
+    description: "Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee — creates an access grant and emails the buyer. Omit deliverables to mark the order as complete without delivering content (for externally fulfilled orders).",
   },
   get_account: {
     operationId: "get_account",
@@ -91,11 +79,11 @@ export const meta: Record<string, ToolMeta> = {
     path: "/v1/orders/{order_id}",
     description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. PAID orders include a FULFILL_ORDER action — call POST /fulfill to deliver content via ListBee. If the listing had deliverables, they were auto-delivered on payment (order is already FULFILLED). If not, the order stays PAID until /fulfill is called or the seller handles delivery externally.",
   },
-  list_api_keys: {
-    operationId: "list_api_keys",
+  get_store: {
+    operationId: "get_store",
     method: "GET",
-    path: "/v1/api-keys",
-    description: "List all API keys. Shows key prefixes and names but not full key values (those are only shown at creation time).",
+    path: "/v1/store",
+    description: "Get the current store's brand info (display_name, bio, avatar, slug) and readiness. Store is determined by your API key — each key belongs to one store.",
   },
   list_customers: {
     operationId: "list_customers",
@@ -131,7 +119,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "publish_listing",
     method: "POST",
     path: "/v1/listings/{listing_id}/publish",
-    description: "Publish a listing so buyers can access the product page. Only works when readiness.publishable is true.",
+    description: "Publish a listing so buyers can access the product page. No Stripe required — the product page goes live immediately. The buy button activates once Stripe is connected.",
   },
   refund_order: {
     operationId: "refund_order",
@@ -155,7 +143,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "set_deliverables",
     method: "PUT",
     path: "/v1/listings/{listing_id}/deliverables",
-    description: "Set digital deliverables (files, URLs, or text) on a listing. Required for managed fulfillment mode.",
+    description: "Set digital deliverables (files, URLs, or text) on a listing. Listings with deliverables auto-deliver to buyers on purchase.",
   },
   start_stripe_connect: {
     operationId: "start_stripe_connect",
@@ -173,13 +161,19 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_account",
     method: "PUT",
     path: "/v1/account",
-    description: "Update the account's display name, bio, or avatar. These appear on product pages as the seller identity.",
+    description: "Update account settings. Brand info (display_name, bio, avatar) is on the Store, not the Account. Use update_store for branding.",
   },
   update_listing: {
     operationId: "update_listing",
     method: "PUT",
     path: "/v1/listings/{listing_id}",
     description: "Update listing fields. Slug can be changed while in draft status — input is slugified, conflicts get a random suffix. Returns updated listing with readiness.",
+  },
+  update_store: {
+    operationId: "update_store",
+    method: "PUT",
+    path: "/v1/store",
+    description: "Update store brand info. These appear on product pages and the store landing page.",
   },
   update_webhook: {
     operationId: "update_webhook",
