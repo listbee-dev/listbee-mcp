@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-10
+
 ### Added
 - `get_store` tool — retrieve store brand info and readiness
 - `update_store` tool — update display name, bio, avatar, or slug
