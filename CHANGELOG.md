@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-10
+
 ### Changed
 - Remove `content_type` from listing and order schemas
 - Remove `handed_off_at` and `processing`/`handed_off` order statuses
