@@ -138,6 +138,10 @@ tools:
       readOnlyHint: false
       destructiveHint: true
     when_to_use: "Use when removing all deliverables from a listing (switches to agent-fulfilled or webhook delivery)."
+    description: >
+      Remove all deliverables from a listing. This is irreversible — the files
+      and delivery configuration cannot be recovered. The listing switches to
+      external fulfillment (webhook or agent callback).
 
   - type: operation
     operation_id: delete_listing
@@ -149,6 +153,9 @@ tools:
       readOnlyHint: false
       destructiveHint: true
     when_to_use: "Use when the user wants to permanently remove a listing."
+    description: >
+      Permanently delete a listing. This is irreversible — the listing, its
+      checkout URL, and all associated data cannot be recovered.
 
   # --- Files ---
   - type: operation
@@ -228,8 +235,9 @@ tools:
       idempotentHint: true
     when_to_use: "When a buyer requests a refund or the seller needs to reverse a charge. Only works on paid or fulfilled orders."
     description: >
-      Issue a full refund for an order. Refund is processed through Stripe on the
-      seller's connected account. Idempotent — already-refunded orders return as-is.
+      Issue a full refund for an order. This is irreversible and cannot be undone.
+      Refund is processed through Stripe on the seller's connected account.
+      Idempotent — already-refunded orders return as-is.
       Order state (refund_amount, refunded_at) updates asynchronously via Stripe webhook.
     hints:
       - "Only works on orders in PAID or FULFILLED status"
@@ -393,8 +401,9 @@ tools:
       destructiveHint: true
     when_to_use: "Use when the user wants to disconnect their Stripe account."
     description: >
-      Disconnect the Stripe account from ListBee. Existing listings retain their
-      payment snapshot but new checkouts will fail.
+      Disconnect the Stripe account from ListBee. This cannot be undone —
+      you will need to re-onboard through Stripe Connect. Existing listings
+      retain their payment snapshot but new checkouts will fail.
     hints:
       - "This doesn't delete the Stripe account — just disconnects it from ListBee"
 
@@ -456,6 +465,9 @@ tools:
       readOnlyHint: false
       destructiveHint: true
     when_to_use: "Use to remove a webhook endpoint."
+    description: >
+      Permanently delete a webhook endpoint. This is irreversible — the webhook
+      and its delivery history cannot be recovered.
 
   - type: operation
     operation_id: list_webhook_events

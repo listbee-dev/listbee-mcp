@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-11T17:15:36.655Z
-// sha256: 3444fea014b94e73b693f63210b0fb164c64966011d999a34c8b020243932cbe
+// generated_at: 2026-04-11T17:23:53.929Z
+// sha256: f1ff63c2019415cf3c8972f4c729b6145c388b80569562c9818ff133e9bb6261
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -55,7 +55,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "delete_listing",
     method: "DELETE",
     path: "/v1/listings/{listing_id}",
-    description: "Delete a listing by ID and its stored content. Irreversible. Published listings with existing orders can still be deleted — order history is preserved but the checkout URL stops working.",
+    description: "Permanently delete a listing. This is irreversible — the listing, its checkout URL, and all associated data cannot be recovered.",
     annotations: {
       destructiveHint: true,
       readOnlyHint: false,
@@ -65,7 +65,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "delete_webhook",
     method: "DELETE",
     path: "/v1/webhooks/{webhook_id}",
-    description: "Delete a webhook endpoint. Irreversible. Pending event deliveries for this endpoint are canceled. Order events will no longer be sent to this URL.",
+    description: "Permanently delete a webhook endpoint. This is irreversible — the webhook and its delivery history cannot be recovered.",
     annotations: {
       destructiveHint: true,
       readOnlyHint: false,
@@ -75,7 +75,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "disconnect_stripe",
     method: "DELETE",
     path: "/v1/account/stripe",
-    description: "Disconnect the Stripe account from ListBee. Existing listings retain their payment snapshot but new checkouts will fail.",
+    description: "Disconnect the Stripe account from ListBee. This cannot be undone — you will need to re-onboard through Stripe Connect. Existing listings retain their payment snapshot but new checkouts will fail.",
     annotations: {
       destructiveHint: true,
       readOnlyHint: false,
@@ -215,7 +215,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "refund_order",
     method: "POST",
     path: "/v1/orders/{order_id}/refund",
-    description: "Issue a full refund for an order. Refund is processed through Stripe on the seller's connected account. Idempotent — already-refunded orders return as-is. Order state (refund_amount, refunded_at) updates asynchronously via Stripe webhook.",
+    description: "Issue a full refund for an order. This is irreversible and cannot be undone. Refund is processed through Stripe on the seller's connected account. Idempotent — already-refunded orders return as-is. Order state (refund_amount, refunded_at) updates asynchronously via Stripe webhook.",
     annotations: {
       destructiveHint: true,
       idempotentHint: true,
@@ -226,7 +226,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "remove_deliverables",
     method: "DELETE",
     path: "/v1/listings/{listing_id}/deliverables",
-    description: "Remove all deliverables from a draft listing. Switches the listing to external fulfillment — orders will fire order.paid webhooks instead of auto-delivering content. Draft only — returns 409 if the listing is published. After removing, check readiness via GET /v1/listings/{listing_id}.",
+    description: "Remove all deliverables from a listing. This is irreversible — the files and delivery configuration cannot be recovered. The listing switches to external fulfillment (webhook or agent callback).",
     annotations: {
       destructiveHint: true,
       readOnlyHint: false,
