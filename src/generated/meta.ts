@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-11T15:10:13.519Z
-// sha256: ba4bb96c61e04bb1947cea9dc9a2d3a87ec6057edf9b512748d3cb983d4c639e
+// generated_at: 2026-04-11T15:22:03.689Z
+// sha256: 6a7668199fb52808fd3143862033bd369c5f0cb2e91d08ec31d42ce7c31d0f3a
 
 export interface ToolMeta {
   operationId: string;
@@ -35,13 +35,13 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "delete_listing",
     method: "DELETE",
     path: "/v1/listings/{listing_id}",
-    description: "Delete a listing by ID and its stored content. Irreversible.",
+    description: "Delete a listing by ID and its stored content. Irreversible. Published listings with existing orders can still be deleted — order history is preserved but the checkout URL stops working.",
   },
   delete_webhook: {
     operationId: "delete_webhook",
     method: "DELETE",
     path: "/v1/webhooks/{webhook_id}",
-    description: "Delete a webhook endpoint. Irreversible.",
+    description: "Delete a webhook endpoint. Irreversible. Pending event deliveries for this endpoint are canceled. Order events will no longer be sent to this URL.",
   },
   disconnect_stripe: {
     operationId: "disconnect_stripe",
@@ -77,7 +77,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_order",
     method: "GET",
     path: "/v1/orders/{order_id}",
-    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. PAID orders include a FULFILL_ORDER action — call POST /fulfill to deliver content via ListBee. If the listing had deliverables, they were auto-delivered on payment (order is already FULFILLED). If not, the order stays PAID until /fulfill is called or the seller handles delivery externally.",
+    description: "Get a single order by ID. Order lifecycle: PENDING → PAID → FULFILLED. Check has_deliverables to determine fulfillment mode: if true, content was auto-delivered on payment (order is already FULFILLED). If false, the order stays PAID — call POST /v1/orders/{order_id}/fulfill to deliver content via ListBee, or handle delivery externally via the order.paid webhook. Use readiness.next to determine the recommended next action.",
   },
   get_store: {
     operationId: "get_store",
@@ -131,7 +131,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "remove_deliverables",
     method: "DELETE",
     path: "/v1/listings/{listing_id}/deliverables",
-    description: "Remove all deliverables from a draft listing. Demotes the listing to external fulfillment. Draft only — returns 409 if the listing is published.",
+    description: "Remove all deliverables from a draft listing. Switches the listing to external fulfillment — orders will fire order.paid webhooks instead of auto-delivering content. Draft only — returns 409 if the listing is published. After removing, check readiness via GET /v1/listings/{listing_id}.",
   },
   retry_webhook_event: {
     operationId: "retry_webhook_event",
@@ -179,7 +179,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_webhook",
     method: "PUT",
     path: "/v1/webhooks/{webhook_id}",
-    description: "Update a webhook endpoint. Only provided fields are changed.",
+    description: "Update a webhook endpoint URL, name, or subscribed events. Only provided fields are changed. Use POST /v1/webhooks/{webhook_id}/test to verify the updated endpoint receives events correctly.",
   },
   upload_file: {
     operationId: "upload_file",

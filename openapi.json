@@ -8,7 +8,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8000/_api",
+      "url": "https://api.listbee.so",
       "description": "API server"
     }
   ],
@@ -54,7 +54,7 @@
           "Account"
         ],
         "summary": "Update account",
-        "description": "Update account settings. Supports ga_measurement_id and notify_orders.",
+        "description": "Update account settings: ga_measurement_id (Google Analytics tracking on checkout pages) and notify_orders (email notifications for new orders). Returns the updated account with readiness \u2014 check readiness.operational to verify the account can accept payments.",
         "operationId": "update_account",
         "requestBody": {
           "content": {
@@ -288,7 +288,7 @@
           "Customers"
         ],
         "summary": "Get customer",
-        "description": "Get a single customer by ID. Customers are auto-created from order data \u2014 they represent unique buyer email addresses that have purchased from the seller.",
+        "description": "Get a single customer by ID. Customers are auto-created from order data \u2014 they represent unique buyer email addresses that have purchased from the seller. Use the customer's email to filter orders via GET /v1/orders?buyer_email=... for purchase history.",
         "operationId": "get_customer",
         "security": [
           {
@@ -361,7 +361,7 @@
           "Files"
         ],
         "summary": "Upload file",
-        "description": "Upload a file and receive a token valid for 24 hours. Pass the token to set_deliverables, or as 'cover'/'avatar' when creating or updating a listing or account.\n\n**Per-purpose limits:**\n- `deliverable` \u2014 up to 25 MB; PDF, EPUB, ZIP, images, audio, video, Office documents.\n- `cover` \u2014 up to 5 MB; JPEG, PNG, WebP, or GIF.\n- `avatar` \u2014 up to 2 MB; JPEG, PNG, WebP, or GIF.\n\nMIME type is verified against magic bytes. Mismatches are rejected.",
+        "description": "Upload a file and receive a token valid for 24 hours. Use the token in PUT /v1/listings/{id}/deliverables (as a file deliverable), or as 'cover' when creating/updating a listing, or 'avatar' when updating a store. Typical flow: upload_file \u2192 set_deliverables \u2192 publish_listing.\n\n**Per-purpose limits:**\n- `deliverable` \u2014 up to 25 MB; PDF, EPUB, ZIP, images, audio, video, Office documents.\n- `cover` \u2014 up to 5 MB; JPEG, PNG, WebP, or GIF.\n- `avatar` \u2014 up to 2 MB; JPEG, PNG, WebP, or GIF.\n\nMIME type is verified against magic bytes. Mismatches are rejected.",
         "operationId": "upload_file",
         "requestBody": {
           "content": {
@@ -760,7 +760,7 @@
           "Listings"
         ],
         "summary": "Delete listing",
-        "description": "Delete a listing by ID and its stored content. Irreversible.",
+        "description": "Delete a listing by ID and its stored content. Irreversible. Published listings with existing orders can still be deleted \u2014 order history is preserved but the checkout URL stops working.",
         "operationId": "delete_listing",
         "security": [
           {
@@ -826,7 +826,7 @@
           "Listings"
         ],
         "summary": "Set deliverables",
-        "description": "Replace all deliverables on a draft listing. Accepts an array of up to 3 deliverables (file, url, text). File tokens must be obtained via POST /v1/files first. Old file deliverables are automatically cleaned up from storage.",
+        "description": "Replace all deliverables on a draft listing. Accepts an array of up to 3 deliverables (file, url, text). File tokens must be obtained via POST /v1/files first. Old file deliverables are automatically cleaned up from storage. After setting deliverables, call POST /v1/listings/{listing_id}/publish to make the listing live and buyable.",
         "operationId": "set_deliverables",
         "security": [
           {
@@ -917,7 +917,7 @@
           "Listings"
         ],
         "summary": "Add deliverable",
-        "description": "Add a single deliverable to a draft listing. Appends to the existing array. Returns the new deliverable with a unique del_ prefixed ID. Max 3 deliverables per listing \u2014 returns 409 if at capacity.",
+        "description": "Add a single deliverable to a draft listing. Appends to the existing array. Returns the new deliverable with a unique del_ prefixed ID. Max 3 deliverables per listing \u2014 returns 409 if at capacity. When all deliverables are set, call POST /v1/listings/{listing_id}/publish to go live.",
         "operationId": "add_deliverable",
         "security": [
           {
@@ -1008,7 +1008,7 @@
           "Listings"
         ],
         "summary": "Remove deliverables",
-        "description": "Remove all deliverables from a draft listing. Demotes the listing to external fulfillment. Draft only \u2014 returns 409 if the listing is published.",
+        "description": "Remove all deliverables from a draft listing. Switches the listing to external fulfillment \u2014 orders will fire order.paid webhooks instead of auto-delivering content. Draft only \u2014 returns 409 if the listing is published. After removing, check readiness via GET /v1/listings/{listing_id}.",
         "operationId": "remove_deliverables",
         "security": [
           {
@@ -1091,7 +1091,7 @@
           "Listings"
         ],
         "summary": "Remove deliverable",
-        "description": "Remove a single deliverable by its del_ ID from a draft listing. If the deliverable is a file, the CDN content is cleaned up.",
+        "description": "Remove a single deliverable by its del_ ID from a draft listing. If the deliverable is a file, the CDN content is cleaned up. Draft only \u2014 returns 409 if the listing is published. After adjusting deliverables, check readiness via GET /v1/listings/{listing_id}.",
         "operationId": "remove_deliverable",
         "security": [
           {
@@ -1455,7 +1455,7 @@
           "Orders"
         ],
         "summary": "Get order",
-        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. PAID orders include a FULFILL_ORDER action \u2014 call POST /fulfill to deliver content via ListBee. If the listing had deliverables, they were auto-delivered on payment (order is already FULFILLED). If not, the order stays PAID until /fulfill is called or the seller handles delivery externally.",
+        "description": "Get a single order by ID. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. Check has_deliverables to determine fulfillment mode: if true, content was auto-delivered on payment (order is already FULFILLED). If false, the order stays PAID \u2014 call POST /v1/orders/{order_id}/fulfill to deliver content via ListBee, or handle delivery externally via the order.paid webhook. Use readiness.next to determine the recommended next action.",
         "operationId": "get_order",
         "security": [
           {
@@ -1528,7 +1528,7 @@
           "Orders"
         ],
         "summary": "Refund order",
-        "description": "Issue a full refund for an order. The refund is processed through Stripe on the seller's connected account. Only orders with status `paid` or `fulfilled` can be refunded. If the order is already refunded, returns the order as-is (idempotent). The order's refund_amount and refunded_at update asynchronously via Stripe webhook.",
+        "description": "Issue a full refund for an order. The refund is processed through Stripe on the seller's connected account. Only orders with status `paid` or `fulfilled` can be refunded. If the order is already refunded, returns the order as-is (idempotent). The order transitions to REFUNDED \u2014 refund_amount and refunded_at update asynchronously via Stripe webhook. An order.refunded webhook event fires when the refund completes.",
         "operationId": "refund_order",
         "security": [
           {
@@ -1697,7 +1697,7 @@
     "/v1/store": {
       "get": {
         "tags": [
-          "store"
+          "Store"
         ],
         "summary": "Get Store",
         "description": "Get the current store's brand info and readiness. Store is determined by your API key.",
@@ -1722,7 +1722,7 @@
       },
       "put": {
         "tags": [
-          "store"
+          "Store"
         ],
         "summary": "Update Store",
         "description": "Update store brand info: display_name, bio, avatar (file token from POST /v1/files), slug. Response includes readiness status \u2014 check actions for what's needed before selling.",
@@ -1809,7 +1809,7 @@
           "Stripe"
         ],
         "summary": "Disconnect Stripe",
-        "description": "Remove Stripe configuration from the account. The account will no longer accept payments until a new Connect session is completed.",
+        "description": "Remove Stripe configuration from the account. All published listings become unsellable \u2014 checkout URLs return an error until Stripe is reconnected. Call POST /v1/account/stripe/connect to start a new Connect session.",
         "operationId": "disconnect_stripe",
         "responses": {
           "200": {
@@ -1940,7 +1940,7 @@
           "Webhooks"
         ],
         "summary": "Update webhook",
-        "description": "Update a webhook endpoint. Only provided fields are changed.",
+        "description": "Update a webhook endpoint URL, name, or subscribed events. Only provided fields are changed. Use POST /v1/webhooks/{webhook_id}/test to verify the updated endpoint receives events correctly.",
         "operationId": "update_webhook",
         "security": [
           {
@@ -2021,7 +2021,7 @@
           "Webhooks"
         ],
         "summary": "Delete webhook",
-        "description": "Delete a webhook endpoint. Irreversible.",
+        "description": "Delete a webhook endpoint. Irreversible. Pending event deliveries for this endpoint are canceled. Order events will no longer be sent to this URL.",
         "operationId": "delete_webhook",
         "security": [
           {
@@ -2300,7 +2300,7 @@
           "Webhooks"
         ],
         "summary": "Test webhook",
-        "description": "Send a test event to a webhook endpoint and return the delivery result. Does not persist an event record.",
+        "description": "Send a test event to a webhook endpoint and return the delivery result. Does not persist an event record. Use this to verify your endpoint is reachable and correctly processes the payload. The response includes status_code and body from your endpoint.",
         "operationId": "test_webhook",
         "security": [
           {
@@ -3622,7 +3622,7 @@
             },
             "type": "array",
             "title": "Events",
-            "description": "Event types to subscribe to. Empty = all events. Available: order.paid, order.fulfilled, order.shipped, order.refunded, order.disputed, order.dispute_closed, order.canceled, listing.created, listing.updated, listing.out_of_stock, listing.deleted.",
+            "description": "Event types to subscribe to. Empty = all events. Available: order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled, listing.created, listing.updated, listing.published, listing.out_of_stock, listing.deleted, customer.created.",
             "examples": [
               [
                 "order.paid"
@@ -4054,10 +4054,17 @@
             ]
           },
           "expires_at": {
-            "type": "string",
-            "format": "date-time",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Expires At",
-            "description": "Token expires at this time. Upload a new file after expiry.",
+            "description": "Token expires at this time. Upload a new file after expiry. None when file is permanently attached.",
             "examples": [
               "2026-04-03T15:00:00Z"
             ]
@@ -4678,6 +4685,46 @@
         ],
         "title": "OrderListResponse"
       },
+      "OrderReadiness": {
+        "properties": {
+          "fulfilled": {
+            "type": "boolean",
+            "title": "Fulfilled",
+            "description": "True when the order has been delivered to the buyer.",
+            "examples": [
+              true
+            ]
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/Action"
+            },
+            "type": "array",
+            "title": "Actions",
+            "description": "Steps to fulfill this order. Empty when fulfilled."
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Highest-priority action code.",
+            "examples": [
+              "fulfill_order"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fulfilled"
+        ],
+        "title": "OrderReadiness"
+      },
       "OrderResponse": {
         "properties": {
           "object": {
@@ -4834,6 +4881,10 @@
             "title": "Actions",
             "description": "Available actions for this order. Only present when actions exist. PAID orders show FULFILL_ORDER (suggested) \u2014 deliver content to buyer via ListBee. Omitted for FULFILLED, CANCELED, FAILED orders."
           },
+          "readiness": {
+            "$ref": "#/components/schemas/OrderReadiness",
+            "description": "Order readiness state. fulfilled=True means the buyer has received the content. When fulfilled=False and status=PAID, actions contains FULFILL_ORDER \u2014 call it to deliver. Agents should check readiness.next for the highest-priority action code."
+          },
           "stripe_payment_intent_id": {
             "type": "string",
             "title": "Stripe Payment Intent Id",
@@ -4986,6 +5037,7 @@
           "status",
           "has_deliverables",
           "payment_status",
+          "readiness",
           "stripe_payment_intent_id",
           "created_at"
         ],
