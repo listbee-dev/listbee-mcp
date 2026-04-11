@@ -1850,6 +1850,48 @@
         "summary": "List webhooks",
         "description": "List all webhook endpoints for the authenticated account. Use POST /v1/webhooks to register new endpoints. All order event payloads include the full order snapshot \u2014 no follow-up API calls needed.",
         "operationId": "list_webhooks",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Pagination cursor from a previous response.",
+              "title": "Cursor"
+            },
+            "description": "Pagination cursor from a previous response."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Maximum number of webhooks to return.",
+              "examples": [
+                20
+              ],
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Maximum number of webhooks to return."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1870,13 +1912,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       },
       "post": {
         "tags": [
@@ -1885,15 +1932,20 @@
         "summary": "Create webhook",
         "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, has_deliverables, payment_status, checkout_data, listing_metadata, timestamps, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
         "operationId": "create_webhook",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateWebhookRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1936,12 +1988,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/webhooks/{webhook_id}": {

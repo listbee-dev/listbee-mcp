@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - `list_plans` response now includes `cursor` and `has_more` pagination fields
-- `list_webhooks` response now includes `cursor` and `has_more` pagination fields
+- `list_webhooks` tool now accepts optional `cursor` and `limit` parameters for pagination
 
 ## [0.11.0] - 2026-04-10
 

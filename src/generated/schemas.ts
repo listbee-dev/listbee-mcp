@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-11T16:08:04.431Z
-// sha256: b9e133f1010b163aae483ed68372dade415cf546805a54c2437a946eb3a2d79a
+// generated_at: 2026-04-11T16:24:50.737Z
+// sha256: 3eb849a052d84c296ffaa93e29c7a67c9ba86a3c98441d5df4b6d14fd9bf3f29
 
 import { z } from "zod";
 
@@ -25,7 +25,7 @@ export const schemas = {
   list_listings: z.object({ "status": z.union([z.enum(["draft","published"]), z.null()]).describe("Filter by listing status.").optional(), "cursor": z.union([z.string(), z.null()]).describe("Pagination cursor from a previous response.").optional(), "limit": z.number().int().gte(1).lte(100).describe("Maximum number of listings to return.").default(20) }).strict(),
   list_orders: z.object({ "status": z.union([z.enum(["pending","paid","fulfilled","canceled","failed"]), z.null()]).describe("Filter orders by status.").optional(), "listing": z.union([z.string(), z.null()]).describe("Filter by listing ID (lst_ prefixed).").optional(), "buyer_email": z.union([z.string(), z.null()]).describe("Filter by exact buyer email address.").optional(), "created_after": z.union([z.string().datetime({ offset: true }), z.null()]).describe("Only orders created after this ISO 8601 datetime.").optional(), "created_before": z.union([z.string().datetime({ offset: true }), z.null()]).describe("Only orders created before this ISO 8601 datetime.").optional(), "cursor": z.union([z.string(), z.null()]).describe("Pagination cursor from a previous response.").optional(), "limit": z.number().int().gte(1).lte(100).describe("Maximum number of orders to return.").default(20) }).strict(),
   list_webhook_events: z.object({ "webhook_id": z.string().describe("Webhook endpoint ID."), "delivered": z.union([z.boolean(), z.null()]).describe("Filter by delivery status. `true` for delivered, `false` for pending/failed.").optional(), "cursor": z.union([z.string(), z.null()]).describe("Pagination cursor from a previous response.").optional(), "limit": z.number().int().gte(1).lte(100).describe("Maximum number of events to return.").default(20) }).strict(),
-  list_webhooks: null,
+  list_webhooks: z.object({ "cursor": z.union([z.string(), z.null()]).describe("Pagination cursor from a previous response.").optional(), "limit": z.number().int().gte(1).lte(100).describe("Maximum number of webhooks to return.").default(20) }).strict(),
   publish_listing: z.object({ "listing_id": z.string().describe("Listing ID (lst_ prefixed).") }).strict(),
   refund_order: z.object({ "order_id": z.string().describe("Order ID (ord_ prefixed).") }).strict(),
   remove_deliverables: z.object({ "listing_id": z.string().describe("Listing ID (lst_ prefixed).") }).strict(),
