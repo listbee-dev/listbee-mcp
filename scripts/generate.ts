@@ -221,6 +221,7 @@ interface GeneratedTool {
   path: string;
   description: string;
   zodCode: string | null; // null if no params/body
+  annotations?: Record<string, boolean>;
 }
 
 function generate(spec: OpenApiSpec, manifest: ManifestFile): GeneratedTool[] {
@@ -321,6 +322,7 @@ function generate(spec: OpenApiSpec, manifest: ManifestFile): GeneratedTool[] {
       path,
       description: tool.description ?? op.description ?? op.summary ?? "",
       zodCode,
+      annotations: tool.annotations as Record<string, boolean> | undefined,
     });
   }
 
@@ -370,22 +372,36 @@ function renderSchemasFile(tools: GeneratedTool[], header: string): string {
 function renderMetaFile(tools: GeneratedTool[], header: string): string {
   const lines: string[] = [header, ""];
 
+  lines.push("export interface ToolAnnotations {");
+  lines.push("  readOnlyHint?: boolean;");
+  lines.push("  destructiveHint?: boolean;");
+  lines.push("  idempotentHint?: boolean;");
+  lines.push("  openWorldHint?: boolean;");
+  lines.push("}");
+  lines.push("");
   lines.push("export interface ToolMeta {");
   lines.push("  operationId: string;");
   lines.push("  method: string;");
   lines.push("  path: string;");
   lines.push("  description: string;");
+  lines.push("  annotations: ToolAnnotations;");
   lines.push("}");
   lines.push("");
   lines.push("export const meta: Record<string, ToolMeta> = {");
 
   for (const tool of tools) {
     const desc = tool.description.replace(/\n/g, " ").replace(/"/g, '\\"').trim();
+    const ann = tool.annotations ?? {};
     lines.push(`  ${tool.name}: {`);
     lines.push(`    operationId: "${tool.operationId}",`);
     lines.push(`    method: "${tool.method}",`);
     lines.push(`    path: "${tool.path}",`);
     lines.push(`    description: "${desc}",`);
+    lines.push(`    annotations: {`);
+    for (const [key, value] of Object.entries(ann).sort()) {
+      lines.push(`      ${key}: ${value},`);
+    }
+    lines.push(`    },`);
     lines.push(`  },`);
   }
 

@@ -3,6 +3,13 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 
+export interface ToolAnnotations {
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+}
+
 export interface ToolMeta {
   type: string;
   operation_id: string;
@@ -10,6 +17,7 @@ export interface ToolMeta {
   category: string;
   priority: number;
   status: string;
+  annotations?: ToolAnnotations;
   requires_human?: boolean;
   when_to_use: string;
   description?: string;
