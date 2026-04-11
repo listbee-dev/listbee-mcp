@@ -8,7 +8,7 @@
   },
   "servers": [
     {
-      "url": "https://api.listbee.so",
+      "url": "http://localhost:8000/_api",
       "description": "API server"
     }
   ],
@@ -1925,6 +1925,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2013,6 +2023,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
           }
         }
       },
@@ -2060,6 +2080,16 @@
           },
           "404": {
             "description": "Webhook not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2281,6 +2311,16 @@
               }
             }
           },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2346,6 +2386,16 @@
           },
           "404": {
             "description": "Webhook not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2548,6 +2598,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PlanListResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -5099,6 +5159,30 @@
             "type": "array",
             "title": "Data",
             "description": "Array of plan objects."
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor",
+            "description": "Pass as `cursor` query param to fetch the next page.",
+            "examples": [
+              null
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "description": "True if more results exist beyond this page.",
+            "default": false,
+            "examples": [
+              false
+            ]
           }
         },
         "type": "object",
@@ -6319,6 +6403,30 @@
             "type": "array",
             "title": "Data",
             "description": "Array of webhook objects."
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor",
+            "description": "Pass as `cursor` query param to fetch the next page.",
+            "examples": [
+              "wh_3mK8nP2qR5tW7xY1"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "description": "True if more results exist beyond this page.",
+            "default": false,
+            "examples": [
+              false
+            ]
           }
         },
         "type": "object",
