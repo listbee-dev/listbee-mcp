@@ -21,6 +21,7 @@ jobs:
       - name: Fetch OpenAPI spec
         run: curl -sf https://api.listbee.so/openapi.json -o openapi.json
       - run: npm run lint
+      - run: npm run validate:annotations
       - run: npm run build
 
   parity:

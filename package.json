@@ -19,6 +19,7 @@
     "generate:check": "tsx scripts/generate.ts --check",
     "build": "npm run generate && tsc && chmod +x dist/index.js",
     "dev": "tsx src/index.ts",
+    "validate:annotations": "tsx scripts/validate-annotations.ts",
     "lint": "npm run generate:check && tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
