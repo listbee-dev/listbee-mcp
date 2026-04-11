@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { AnySchema } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { z } from "zod";
 import { ListBee } from "listbee";
@@ -35,28 +34,6 @@ interface CreateServerOptions {
   apiKey: string;
   baseUrl?: string;
   toolFilter?: Set<string>;
-}
-
-/**
- * Annotation defaults per HTTP method pattern.
- */
-function annotationsFor(name: string): ToolAnnotations {
-  if (name.startsWith("create_") || name.startsWith("fulfill_") || name.startsWith("publish_") || name.startsWith("retry_") || name.startsWith("start_")) {
-    return { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
-  }
-  if (name.startsWith("delete_") || name.startsWith("disconnect_") || name.startsWith("remove_")) {
-    return { readOnlyHint: false, destructiveHint: true, openWorldHint: false };
-  }
-  if (name.startsWith("get_") || name.startsWith("list_")) {
-    return { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-  }
-  if (name.startsWith("refund_") || name.startsWith("set_") || name.startsWith("update_")) {
-    return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
-  }
-  if (name.startsWith("test_") || name.startsWith("upload_")) {
-    return { readOnlyHint: false, destructiveHint: false, openWorldHint: true };
-  }
-  return { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 }
 
 // Manual override for upload_file: the API uses multipart upload but the MCP tool
@@ -127,7 +104,7 @@ export function createServer(options: CreateServerOptions): McpServer {
 
     const description = buildDescription(meta);
     const title = autoTitle(toolName);
-    const annotations = annotationsFor(toolName);
+    const annotations = meta?.annotations ?? {};
 
     // start_stripe_connect: special case — handler returns CallToolResult directly
     if (toolName === "start_stripe_connect") {
@@ -176,10 +153,9 @@ export function createServer(options: CreateServerOptions): McpServer {
         `Startup validation failed: tool "${name}" has no handler registered`,
       );
     }
-    const ann = annotationsFor(name);
-    if (ann.readOnlyHint === undefined) {
+    if (tool.annotations === undefined) {
       throw new Error(
-        `Startup validation failed: tool "${name}" is missing readOnlyHint annotation`,
+        `Startup validation failed: tool "${name}" is missing annotations in manifest`,
       );
     }
   }
