@@ -41,37 +41,22 @@ interface CreateServerOptions {
  * Annotation defaults per HTTP method pattern.
  */
 function annotationsFor(name: string): ToolAnnotations {
+  if (name.startsWith("create_") || name.startsWith("fulfill_") || name.startsWith("publish_") || name.startsWith("retry_") || name.startsWith("start_")) {
+    return { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+  }
+  if (name.startsWith("delete_") || name.startsWith("disconnect_") || name.startsWith("remove_")) {
+    return { readOnlyHint: false, destructiveHint: true, openWorldHint: false };
+  }
   if (name.startsWith("get_") || name.startsWith("list_")) {
     return { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
   }
-  if (name.startsWith("delete_") || name === "remove_deliverables" || name === "disconnect_stripe") {
-    return {
-      readOnlyHint: false,
-      destructiveHint: true,
-      openWorldHint: false,
-    };
+  if (name.startsWith("refund_") || name.startsWith("set_") || name.startsWith("update_")) {
+    return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
   }
-  if (name.startsWith("update_") || name === "set_deliverables") {
-    return {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    };
+  if (name.startsWith("test_") || name.startsWith("upload_")) {
+    return { readOnlyHint: false, destructiveHint: false, openWorldHint: true };
   }
-  if (name === "upload_file") {
-    return {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: true,
-    };
-  }
-  // create, publish, stripe connect
-  return {
-    readOnlyHint: false,
-    destructiveHint: false,
-    openWorldHint: false,
-  };
+  return { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 }
 
 // Manual override for upload_file: the API uses multipart upload but the MCP tool
