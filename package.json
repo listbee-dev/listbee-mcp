@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
-    "listbee": "^0.15.0",
+    "listbee": "^0.17.0",
     "yaml": "2.8.3",
     "zod": "4.3.6"
   },
