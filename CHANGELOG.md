@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - `list_plans` response now includes `cursor` and `has_more` pagination fields
 - `list_webhooks` tool now accepts optional `cursor` and `limit` parameters for pagination
+- `list_listings` and `list_orders` tools now return slim summary objects (`ListingSummary`, `OrderSummary`)
+
+### Removed
+- `totalCount` field from listing and order list responses
 
 ## [0.11.0] - 2026-04-10
 
