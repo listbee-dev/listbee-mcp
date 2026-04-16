@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-16
+
 ### Removed
 - `get_store` and `update_store` MCP tools — Store entity removed from ListBee
 - `StoreResponse`, `StoreReadiness`, `StoreUpdateRequest`, `BootstrapStoreRequest` schemas
