@@ -7,6 +7,78 @@ version: 1
 #   1-3   = rare / cleanup
 
 tools:
+  # --- Bootstrap (no API key required) ---
+  - type: operation
+    operation_id: bootstrap_start
+    name: bootstrap_start
+    category: bootstrap
+    priority: 10
+    status: active
+    requires_human: true
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    when_to_use: >
+      Use when the agent needs to create a new ListBee account.
+      Step 1 of 3. No API key required.
+    description: >
+      Sends a one-time passcode to the provided email address.
+      Returns a session ID for step 2 (bootstrap_verify).
+      Human must check their email for the 6-digit code.
+      Flow: bootstrap_start → bootstrap_verify → bootstrap_complete.
+    hints:
+      - "Human interaction required: ask for their email, then tell them to check inbox"
+      - "Session expires in 10 minutes"
+      - "Disposable email domains are blocked"
+
+  - type: operation
+    operation_id: bootstrap_verify
+    name: bootstrap_verify
+    category: bootstrap
+    priority: 10
+    status: active
+    requires_human: true
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: false
+    when_to_use: >
+      Use after bootstrap_start to verify the OTP code.
+      Step 2 of 3. Human must provide the 6-digit code.
+    description: >
+      Verifies the OTP. On success, creates an account if new email.
+      Returns session ID for step 3 (bootstrap_complete).
+    hints:
+      - "Human provides the 6-digit code from their email"
+      - "After 5 failed attempts, the OTP is invalidated"
+
+  - type: operation
+    operation_id: bootstrap_complete
+    name: bootstrap_complete
+    category: bootstrap
+    priority: 10
+    status: active
+    requires_human: false
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: true
+      openWorldHint: false
+    when_to_use: >
+      Use after bootstrap_verify to get the API key.
+      Step 3 of 3. No human interaction needed.
+    description: >
+      Generates an API key on the verified session. Idempotent — calling again
+      with the same session within 10 minutes returns the same key.
+      Store the key immediately. Use as Authorization: Bearer lb_...
+    hints:
+      - "Store the api_key IMMEDIATELY — it is a secret"
+      - "If context drops, retry with the same session within 10 minutes"
+      - "After receiving the key, restart this MCP session with the key to unlock all tools"
+
   # --- Listings ---
   - type: operation
     operation_id: create_listing
@@ -57,6 +129,8 @@ tools:
     description: >
       Get a listing's full state including readiness. This is the readiness
       inspection tool — call it after every change to check what's needed.
+      readiness.sellable is true when the listing can accept purchases.
+      If false, readiness.actions tells you what's missing and how to fix each item.
     hints:
       - "This is how you check readiness — call it after every create/update"
       - "readiness.sellable tells you if the listing is live"
@@ -74,8 +148,6 @@ tools:
       destructiveHint: false
       idempotentHint: true
     when_to_use: "Use when changing title, price, or other listing details."
-    description: >
-      Update listing fields. Returns updated listing with readiness.
     input_example:
       name: "100 Cold Outreach Templates (Updated)"
       price: 2900
@@ -139,7 +211,13 @@ tools:
     annotations:
       readOnlyHint: false
       destructiveHint: true
-    when_to_use: "Use when removing all deliverables from a listing (switches to agent-fulfilled or webhook delivery)."
+    when_to_use: >
+      Use when switching a listing from managed delivery to external fulfillment
+      (webhook or agent callback). SAFETY: This is irreversible — always call
+      get_listing first to inspect current state, warn the user that buyers will
+      no longer receive auto-delivery, and wait for explicit user confirmation
+      before calling. After removing, set up a webhook (create_webhook with event
+      order.paid) to ensure order notifications are received.
     description: >
       Remove all deliverables from a listing. This is irreversible — the files
       and delivery configuration cannot be recovered. The listing switches to
@@ -299,12 +377,21 @@ tools:
       idempotentHint: true
     when_to_use: "Use to check account status, readiness, billing, Stripe connection, and profile details."
     description: >
-      Get the authenticated account's full state including readiness and billing status.
-      This is the first call an agent should make to understand what's set up.
+      Returns account profile, stats, and operational readiness.
+      readiness.operational is false until all required actions are resolved.
+      Each action in readiness.actions has:
+        code — what's needed (e.g. connect_stripe)
+        kind — "api" (you can fix it) or "human" (user must act)
+        resolve — exactly how to fix it (method + endpoint or URL)
+        docs — documentation link for this action
+      readiness.next is the highest-priority action code — resolve it first.
     hints:
-      - "Call this first to understand account state"
-      - "readiness.operational tells you if the account can sell"
-      - "Check payment_config to see if Stripe is connected"
+      - "readiness.operational is true when the account can accept payments"
+      - "readiness.actions lists what's needed — each has code, kind, message, and resolve"
+      - "kind:api — resolve by calling resolve.endpoint with resolve.method"
+      - "kind:human — share resolve.url with the user, then poll this endpoint every 30s until the action disappears"
+      - "readiness.next is the highest-priority action code — resolve it first"
+      - "Use this endpoint to poll for completion of human actions like Stripe onboarding"
 
   - type: operation
     operation_id: update_account
@@ -316,9 +403,10 @@ tools:
       readOnlyHint: false
       destructiveHint: false
       idempotentHint: true
-    when_to_use: "Use to update account-level settings (GA tracking, notification preferences)."
+    when_to_use: "Use to update account-level settings (display name, bio, avatar, GA tracking, notification preferences)."
     description: >
-      Update account settings (GA tracking, notification preferences).
+      Update account settings including brand info (display_name, bio, avatar) and
+      other account-level configuration.
 
   - type: operation
     operation_id: delete_account
@@ -334,6 +422,8 @@ tools:
       Permanently delete the account and all associated data. This is irreversible.
     hints:
       - "This is destructive and irreversible — confirm with the user first"
+      - "Before calling, use get_account to retrieve current account state, then surface a warning listing what will be permanently lost: all listings, orders, webhooks, and Stripe connection"
+      - "Only call this after the user has acknowledged the irreversibility warning and given explicit confirmation to proceed"
 
   # --- Stripe ---
   - type: operation
@@ -351,8 +441,12 @@ tools:
       Start Stripe Connect onboarding. Returns a URL for the human to complete
       in a browser. Required before selling through Stripe.
     hints:
-      - "You cannot complete this — the human must open the URL"
-      - "After the human completes onboarding, check readiness again"
+      - "IMPORTANT: Only a human in a browser can complete Stripe onboarding"
+      - "After sharing the URL, poll get_account every 30 seconds"
+      - "Stripe is connected when readiness.actions no longer contains connect_stripe or enable_charges"
+      - "If expires_at has passed, call start_stripe_connect again for a fresh URL"
+      - "Typical completion: 2-5 minutes. Give up after 15 minutes."
+      - "If the user closes before finishing, call start_stripe_connect again"
 
   - type: operation
     operation_id: disconnect_stripe

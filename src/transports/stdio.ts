@@ -2,7 +2,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { createServer } from "../server.js";
 
 export interface StdioConfig {
-  apiKey: string;
+  apiKey: string | undefined;
   baseUrl: string;
   toolFilter?: Set<string>;
 }

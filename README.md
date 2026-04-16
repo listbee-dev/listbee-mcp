@@ -39,6 +39,25 @@ create_listing    →  set_deliverables  →  get_listing  →  publish_listing
 
 ---
 
+## Bootstrap (no API key)
+
+Don't have a ListBee account yet? Start the MCP server without a key — it exposes 3 bootstrap tools for account creation:
+
+```
+bootstrap_start    →  bootstrap_verify  →  bootstrap_complete
+  send OTP email       verify 6-digit       get API key
+```
+
+```bash
+npx -y listbee-mcp   # no --api-key needed
+```
+
+`bootstrap_complete` returns `{ account_id, api_key }`. Store the key immediately, then restart the MCP session with `--api-key lb_...` to unlock all tools.
+
+For the HTTP transport, sessions initialized without a `Bearer` header are automatically bootstrap-only. After bootstrap, open a new session with the key to access the full tool set.
+
+---
+
 ## Install
 
 Requires Node.js 20+.
@@ -131,7 +150,7 @@ docker run -p 8080:8080 listbee-mcp
 
 | Flag | Env var | Default | Description |
 |------|---------|---------|-------------|
-| `--api-key <key>` | `LISTBEE_API_KEY` | — | ListBee API key (required for stdio) |
+| `--api-key <key>` | `LISTBEE_API_KEY` | — | ListBee API key. Optional — omit to start in bootstrap-only mode. |
 | `--base-url <url>` | `LISTBEE_BASE_URL` | `https://api.listbee.so` | API base URL |
 | `--transport <stdio\|http>` | — | `stdio` | Transport mode |
 | `--port <number>` | `PORT` | `8080` | HTTP port (http mode only) |
@@ -147,6 +166,14 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 ---
 
 ## Tools
+
+### Bootstrap (no API key required)
+
+| Tool | Description |
+|------|-------------|
+| `bootstrap_start` | Send a one-time passcode to an email address. Step 1 of 3 for account creation. |
+| `bootstrap_verify` | Verify the OTP from email. Step 2 of 3. |
+| `bootstrap_complete` | Get the API key for the new account. Step 3 of 3. Store immediately. |
 
 ### Account
 

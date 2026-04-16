@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-16T20:02:29.503Z
-// sha256: fa89d3e88a1ea999eb19cfb16648c7fc334049ca215616ac2fc3d4dcb574ebab
+// generated_at: 2026-04-16T22:23:52.121Z
+// sha256: 4a49dcb937329d43f9eed94c502019a19a307cf9ac5178c7dba28498cfa78ac3
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -21,6 +21,42 @@ export interface ToolMeta {
 }
 
 export const meta: Record<string, ToolMeta> = {
+  bootstrap_complete: {
+    operationId: "bootstrap_complete",
+    method: "POST",
+    path: "/v1/bootstrap/complete",
+    description: "Generates an API key on the verified session. Idempotent — calling again with the same session within 10 minutes returns the same key. Store the key immediately. Use as Authorization: Bearer lb_...",
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+  },
+  bootstrap_start: {
+    operationId: "bootstrap_start",
+    method: "POST",
+    path: "/v1/bootstrap",
+    description: "Sends a one-time passcode to the provided email address. Returns a session ID for step 2 (bootstrap_verify). Human must check their email for the 6-digit code. Flow: bootstrap_start → bootstrap_verify → bootstrap_complete.",
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+  },
+  bootstrap_verify: {
+    operationId: "bootstrap_verify",
+    method: "POST",
+    path: "/v1/bootstrap/verify",
+    description: "Verifies the OTP. On success, creates an account if new email. Returns session ID for step 3 (bootstrap_complete).",
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    },
+  },
   create_listing: {
     operationId: "create_listing",
     method: "POST",
@@ -95,7 +131,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_account",
     method: "GET",
     path: "/v1/account",
-    description: "Get the authenticated account's full state including readiness and billing status. This is the first call an agent should make to understand what's set up.",
+    description: "Returns account profile, stats, and operational readiness. readiness.operational is false until all required actions are resolved. Each action in readiness.actions has:   code — what's needed (e.g. connect_stripe)   kind — \"api\" (you can fix it) or \"human\" (user must act)   resolve — exactly how to fix it (method + endpoint or URL)   docs — documentation link for this action readiness.next is the highest-priority action code — resolve it first.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -117,7 +153,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_listing",
     method: "GET",
     path: "/v1/listings/{listing_id}",
-    description: "Get a listing's full state including readiness. This is the readiness inspection tool — call it after every change to check what's needed.",
+    description: "Get a listing's full state including readiness. This is the readiness inspection tool — call it after every change to check what's needed. readiness.sellable is true when the listing can accept purchases. If false, readiness.actions tells you what's missing and how to fix each item.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -268,7 +304,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_account",
     method: "PUT",
     path: "/v1/account",
-    description: "Update account settings (GA tracking, notification preferences).",
+    description: "Update account settings including brand info (display_name, bio, avatar) and other account-level configuration.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,

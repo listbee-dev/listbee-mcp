@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Bootstrap tools: `bootstrap_start`, `bootstrap_verify`, `bootstrap_complete` — agents can now create a ListBee account without an API key. Start `npx listbee-mcp` with no key to get bootstrap-only mode.
+- Per-session auth mode in HTTP transport: sessions initialized without a Bearer token become bootstrap-only (only bootstrap tools registered); sessions initialized with a Bearer require auth on subsequent calls.
+- Richer SERVER_INSTRUCTIONS covering readiness actions and the human-handoff pattern (presenting URLs, polling for completion).
+
+### Changed
+- `apiKey` is now optional in `CreateServerOptions`. Stdio transport no longer requires `--api-key` or `LISTBEE_API_KEY` to start — without a key, only bootstrap tools are exposed.
+- HTTP transport auth moved from blanket middleware to per-session inline checks.
+
 ## [0.13.0] - 2026-04-16
 
 ### Removed

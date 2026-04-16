@@ -38,7 +38,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 
 interface StdioResolvedConfig {
   transport: "stdio";
-  apiKey: string;
+  apiKey: string | undefined;
   baseUrl: string;
   toolFilter?: Set<string>;
 }
@@ -68,7 +68,7 @@ function resolveConfig(
 
   const apiKey = parsed.apiKey || env.LISTBEE_API_KEY;
   if (!apiKey) {
-    return "API key required. Use --api-key or set LISTBEE_API_KEY.";
+    console.error("No API key — bootstrap-only mode. Call bootstrap_complete to get a key.");
   }
   return { transport: "stdio", apiKey, baseUrl, toolFilter };
 }
