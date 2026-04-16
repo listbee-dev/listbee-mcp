@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Removed
+- `get_store` and `update_store` MCP tools — Store entity removed from ListBee
+- `StoreResponse`, `StoreReadiness`, `StoreUpdateRequest`, `BootstrapStoreRequest` schemas
+- `bootstrap_store` operation (`POST /v1/bootstrap/store`)
+- `slug` field from `UpdateListingRequest`, `ListingResponse`, and `ListingSummary` schemas
+
+### Added
+- `short_code` field on `ListingResponse` and `ListingSummary` — replaces `slug` as the listing identifier in responses
+- `BootstrapCompleteRequest` schema (for `POST /v1/bootstrap/complete`)
+- Pinned `openapi.json` updated to current API spec
+
+### Changed
+- Listing responses now use `short_code` instead of `slug`
+- `update_account` description updated — brand settings (display_name, bio, avatar) now on Account directly, not Store
+- `update_listing` description updated — slug field removed
+
 ## [0.12.0] - 2026-04-12
 
 ### Changed

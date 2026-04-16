@@ -156,13 +156,6 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 | `update_account` | Update account-level settings (GA tracking, notification preferences). |
 | `delete_account` | Permanently delete the account and all data. Irreversible. |
 
-### Store
-
-| Tool | Description |
-|------|-------------|
-| `get_store` | Get store brand info (display name, bio, slug, avatar) and readiness. |
-| `update_store` | Update store brand — display name, bio, avatar, or slug. |
-
 ### Listings
 
 | Tool | Description |
@@ -208,7 +201,7 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 
 | Tool | Description |
 |------|-------------|
-| `upload_file` | Upload a file to ListBee. Accepts a `purpose` parameter: `deliverable` (default, listing content), `cover` (listing image), or `avatar` (store avatar). Returns a file token to use in `set_deliverables`, `create_listing`/`update_listing` (as `cover`), or `update_store` (as `avatar`). |
+| `upload_file` | Upload a file to ListBee. Accepts a `purpose` parameter: `deliverable` (default, listing content), `cover` (listing image), or `avatar` (account avatar). Returns a file token to use in `set_deliverables`, `create_listing`/`update_listing` (as `cover`), or `update_account` (as `avatar`). |
 
 ### Stripe
 

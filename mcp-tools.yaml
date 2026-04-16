@@ -74,6 +74,8 @@ tools:
       destructiveHint: false
       idempotentHint: true
     when_to_use: "Use when changing title, price, or other listing details."
+    description: >
+      Update listing fields. Returns updated listing with readiness.
     input_example:
       name: "100 Cold Outreach Templates (Updated)"
       price: 2900
@@ -316,8 +318,7 @@ tools:
       idempotentHint: true
     when_to_use: "Use to update account-level settings (GA tracking, notification preferences)."
     description: >
-      Update account settings. Brand info (display_name, bio, avatar) is on the Store,
-      not the Account. Use update_store for branding.
+      Update account settings (GA tracking, notification preferences).
 
   - type: operation
     operation_id: delete_account
@@ -333,43 +334,6 @@ tools:
       Permanently delete the account and all associated data. This is irreversible.
     hints:
       - "This is destructive and irreversible — confirm with the user first"
-
-  # --- Store ---
-  - type: operation
-    operation_id: get_store
-    name: get_store
-    category: store
-    priority: 9
-    status: active
-    annotations:
-      readOnlyHint: true
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "Use to check your store's brand info and sellability status."
-    description: >
-      Get the current store's brand info (display_name, bio, avatar, slug) and
-      readiness. Store is determined by your API key — each key belongs to one store.
-    hints:
-      - "readiness.sellable tells you if listings can accept payment"
-      - "If not sellable, readiness.actions tells you what's needed (usually Stripe)"
-      - "store.url is the store landing page where all your listings appear"
-
-  - type: operation
-    operation_id: update_store
-    name: update_store
-    category: store
-    priority: 5
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "Use to update your store's brand — display name, bio, avatar, or slug."
-    description: >
-      Update store brand info. These appear on product pages and the store landing page.
-    input_example:
-      display_name: "AI Guides"
-      bio: "Premium guides for modern marketing"
 
   # --- Stripe ---
   - type: operation

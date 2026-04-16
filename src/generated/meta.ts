@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-12T07:24:11.188Z
-// sha256: f1ff63c2019415cf3c8972f4c729b6145c388b80569562c9818ff133e9bb6261
+// generated_at: 2026-04-16T18:53:26.257Z
+// sha256: fa89d3e88a1ea999eb19cfb16648c7fc334049ca215616ac2fc3d4dcb574ebab
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -135,17 +135,6 @@ export const meta: Record<string, ToolMeta> = {
       readOnlyHint: true,
     },
   },
-  get_store: {
-    operationId: "get_store",
-    method: "GET",
-    path: "/v1/store",
-    description: "Get the current store's brand info (display_name, bio, avatar, slug) and readiness. Store is determined by your API key — each key belongs to one store.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: true,
-    },
-  },
   list_customers: {
     operationId: "list_customers",
     method: "GET",
@@ -161,7 +150,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "list_listings",
     method: "GET",
     path: "/v1/listings",
-    description: "List all listings for the authenticated account. Filter by status. Cursor-paginated. Each listing includes readiness — check readiness.sellable to see if it can accept orders.",
+    description: "List all listings for the authenticated account. Filter by status. Cursor-paginated. Returns lightweight summaries — use GET /v1/listings/{listing_id} for full detail including deliverables, readiness, reviews, and checkout schema.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -172,7 +161,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "list_orders",
     method: "GET",
     path: "/v1/orders",
-    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started) → PAID (payment confirmed) → FULFILLED (content delivered). PAID is the resting state for orders where the seller handles delivery externally. Call POST /orders/{id}/fulfill to deliver content via ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Each order includes actions — PAID orders show FULFILL_ORDER (suggested) for optional ListBee delivery.",
+    description: "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Returns lightweight summaries — use GET /v1/orders/{order_id} for full detail including deliverables, readiness, checkout_data, and Stripe payment intent. Order lifecycle: PENDING → PAID → FULFILLED. Terminal: CANCELED, FAILED.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -279,7 +268,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_account",
     method: "PUT",
     path: "/v1/account",
-    description: "Update account settings. Brand info (display_name, bio, avatar) is on the Store, not the Account. Use update_store for branding.",
+    description: "Update account settings (GA tracking, notification preferences).",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -290,18 +279,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_listing",
     method: "PUT",
     path: "/v1/listings/{listing_id}",
-    description: "Update listing fields. Slug can be changed while in draft status — input is slugified, conflicts get a random suffix. Returns updated listing with readiness.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: false,
-    },
-  },
-  update_store: {
-    operationId: "update_store",
-    method: "PUT",
-    path: "/v1/store",
-    description: "Update store brand info. These appear on product pages and the store landing page.",
+    description: "Update listing fields. Returns updated listing with readiness.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,

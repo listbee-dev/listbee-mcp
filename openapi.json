@@ -503,7 +503,7 @@
           "Listings"
         ],
         "summary": "List listings",
-        "description": "List all listings for the authenticated account. Filter by status. Cursor-paginated. Each listing includes readiness \u2014 check readiness.sellable to see if it can accept orders.",
+        "description": "List all listings for the authenticated account. Filter by status. Cursor-paginated. Returns lightweight summaries \u2014 use GET /v1/listings/{listing_id} for full detail including deliverables, readiness, reviews, and checkout schema.",
         "operationId": "list_listings",
         "security": [
           {
@@ -679,7 +679,7 @@
           "Listings"
         ],
         "summary": "Update listing",
-        "description": "Update listing fields. Slug can be changed while in draft status \u2014 input is slugified, conflicts get a random suffix. Returns updated listing with readiness.",
+        "description": "Update listing fields. Returns updated listing with readiness.",
         "operationId": "update_listing",
         "security": [
           {
@@ -1264,7 +1264,7 @@
           "Orders"
         ],
         "summary": "List orders",
-        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Order lifecycle: PENDING (checkout started) \u2192 PAID (payment confirmed) \u2192 FULFILLED (content delivered). PAID is the resting state for orders where the seller handles delivery externally. Call POST /orders/{id}/fulfill to deliver content via ListBee. Terminal error states: CANCELED (payment failed or abandoned), FAILED (system error). Each order includes actions \u2014 PAID orders show FULFILL_ORDER (suggested) for optional ListBee delivery.",
+        "description": "List orders for the authenticated account. Filter by status, listing, and date range. Paginated. Returns lightweight summaries \u2014 use GET /v1/orders/{order_id} for full detail including deliverables, readiness, checkout_data, and Stripe payment intent. Order lifecycle: PENDING \u2192 PAID \u2192 FULFILLED. Terminal: CANCELED, FAILED.",
         "operationId": "list_orders",
         "security": [
           {
@@ -1682,78 +1682,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PingResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      }
-    },
-    "/v1/store": {
-      "get": {
-        "tags": [
-          "Store"
-        ],
-        "summary": "Get Store",
-        "description": "Get the current store's brand info and readiness. Store is determined by your API key.",
-        "operationId": "get_store",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StoreResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Store"
-        ],
-        "summary": "Update Store",
-        "description": "Update store brand info: display_name, bio, avatar (file token from POST /v1/files), slug. Response includes readiness status \u2014 check actions for what's needed before selling.",
-        "operationId": "update_store",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StoreUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StoreResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2522,7 +2450,7 @@
           "Bootstrap"
         ],
         "summary": "Verify OTP \u2014 confirm identity",
-        "description": "Step 2 of 3. Verify the OTP sent in step 1. On success, the session is marked verified and an account is created if this is a new email. Returns the session ID to use in step 3 (POST /v1/bootstrap/store). Public endpoint \u2014 no API key required.",
+        "description": "Step 2 of 3. Verify the OTP sent in step 1. On success, the session is marked verified and an account is created if this is a new email. Returns the session ID to use in step 3 (POST /v1/bootstrap/complete). Public endpoint \u2014 no API key required.",
         "operationId": "bootstrap_verify",
         "requestBody": {
           "content": {
@@ -2578,19 +2506,19 @@
         }
       }
     },
-    "/v1/bootstrap/store": {
+    "/v1/bootstrap/complete": {
       "post": {
         "tags": [
           "Bootstrap"
         ],
-        "summary": "Create store \u2014 final bootstrap step",
-        "description": "Step 3 of 3. Create a store on a verified bootstrap session. Returns the store object with a one-time `api_key` \u2014 store this immediately, it will not be shown again. Use the API key as `Authorization: Bearer lb_...` for all subsequent API calls. Public endpoint \u2014 no API key required.",
-        "operationId": "bootstrap_store",
+        "summary": "Complete bootstrap \u2014 get API key",
+        "description": "Step 3 of 3. Complete bootstrap on a verified session. Returns the account ID and a one-time API key \u2014 store it immediately, it will not be shown again. Use the API key as `Authorization: Bearer lb_...` for all subsequent API calls. Public endpoint \u2014 no API key required.",
+        "operationId": "bootstrap_complete",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BootstrapStoreRequest"
+                "$ref": "#/components/schemas/BootstrapCompleteRequest"
               }
             }
           },
@@ -2601,9 +2529,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StoreResponse"
-                }
+                "schema": {}
               }
             }
           },
@@ -3087,6 +3013,23 @@
         ],
         "title": "Body_upload_file"
       },
+      "BootstrapCompleteRequest": {
+        "properties": {
+          "session": {
+            "type": "string",
+            "title": "Session",
+            "description": "Verified bootstrap session ID",
+            "examples": [
+              "sess_abc123"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "session"
+        ],
+        "title": "BootstrapCompleteRequest"
+      },
       "BootstrapRequest": {
         "properties": {
           "email": {
@@ -3141,34 +3084,6 @@
         ],
         "title": "BootstrapResponse"
       },
-      "BootstrapStoreRequest": {
-        "properties": {
-          "session": {
-            "type": "string",
-            "title": "Session",
-            "description": "Verified session ID from bootstrap step 2",
-            "examples": [
-              "sess_abc123"
-            ]
-          },
-          "store_name": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Store Name",
-            "description": "Display name for the store",
-            "examples": [
-              "Acme Agency"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "session",
-          "store_name"
-        ],
-        "title": "BootstrapStoreRequest"
-      },
       "BootstrapVerifyRequest": {
         "properties": {
           "session": {
@@ -3220,7 +3135,7 @@
           "session": {
             "type": "string",
             "title": "Session",
-            "description": "Verified session ID. Pass to POST /v1/bootstrap/store.",
+            "description": "Verified session ID. Pass to POST /v1/bootstrap/complete.",
             "examples": [
               "sess_abc123"
             ]
@@ -4245,20 +4160,11 @@
           },
           "data": {
             "items": {
-              "$ref": "#/components/schemas/ListingResponse"
+              "$ref": "#/components/schemas/ListingSummary"
             },
             "type": "array",
             "title": "Data",
-            "description": "Array of listing objects."
-          },
-          "total_count": {
-            "type": "integer",
-            "title": "Total Count",
-            "description": "Total number of matching resources across all pages",
-            "default": 0,
-            "examples": [
-              47
-            ]
+            "description": "Array of listing summary objects. Use GET /v1/listings/{id} for full detail."
           },
           "cursor": {
             "anyOf": [
@@ -4351,10 +4257,10 @@
               "lst_7kQ2xY9mN3pR5tW1vB8a"
             ]
           },
-          "slug": {
+          "short_code": {
             "type": "string",
-            "title": "Slug",
-            "description": "URL slug for the product page",
+            "title": "Short Code",
+            "description": "Short code for the product page URL",
             "examples": [
               "seo-playbook"
             ]
@@ -4712,7 +4618,7 @@
         "type": "object",
         "required": [
           "id",
-          "slug",
+          "short_code",
           "name",
           "highlights",
           "price",
@@ -4732,6 +4638,192 @@
         ],
         "title": "ListingStatus"
       },
+      "ListingSummary": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "listing",
+            "title": "Object",
+            "description": "Object type identifier. Always `listing`.",
+            "default": "listing",
+            "examples": [
+              "listing"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique listing ID (lst_ prefixed).",
+            "examples": [
+              "lst_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "short_code": {
+            "type": "string",
+            "title": "Short Code",
+            "description": "Short code for the product page URL",
+            "examples": [
+              "seo-playbook"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Product title",
+            "examples": [
+              "SEO Playbook 2026"
+            ]
+          },
+          "tagline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tagline",
+            "description": "One-line pitch",
+            "examples": [
+              "The only SEO guide you need"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "title": "Price",
+            "description": "Price in cents (smallest currency unit). $29.00 = 2900.",
+            "examples": [
+              2900
+            ]
+          },
+          "compare_at_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare At Price",
+            "description": "Original price for strikethrough display",
+            "examples": [
+              4900
+            ]
+          },
+          "cta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta",
+            "description": "Call-to-action button text",
+            "examples": [
+              "Get the Playbook"
+            ]
+          },
+          "badges": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Badges",
+            "description": "Short badge labels",
+            "examples": [
+              [
+                "Best seller"
+              ]
+            ]
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights",
+            "description": "Bullet point highlights"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus",
+            "description": "Current listing status",
+            "examples": [
+              "published"
+            ]
+          },
+          "stock": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stock",
+            "description": "Stock quantity. null = unlimited.",
+            "examples": [
+              null,
+              50,
+              0
+            ]
+          },
+          "has_deliverables": {
+            "type": "boolean",
+            "title": "Has Deliverables",
+            "description": "Whether listing has deliverables for auto-fulfillment",
+            "examples": [
+              true
+            ]
+          },
+          "has_cover": {
+            "type": "boolean",
+            "title": "Has Cover",
+            "description": "Whether a cover image is set",
+            "default": false
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Full product page URL",
+            "examples": [
+              "https://buy.listbee.so/seo-playbook"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Time at which the listing was created",
+            "examples": [
+              "2026-04-01T12:00:00Z"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "short_code",
+          "name",
+          "price",
+          "status",
+          "has_deliverables",
+          "created_at"
+        ],
+        "title": "ListingSummary",
+        "description": "Lightweight listing for list endpoints. Use GET /v1/listings/{id} for full detail."
+      },
       "OrderListResponse": {
         "properties": {
           "object": {
@@ -4746,20 +4838,11 @@
           },
           "data": {
             "items": {
-              "$ref": "#/components/schemas/OrderResponse"
+              "$ref": "#/components/schemas/OrderSummary"
             },
             "type": "array",
             "title": "Data",
-            "description": "Array of order objects."
-          },
-          "total_count": {
-            "type": "integer",
-            "title": "Total Count",
-            "description": "Total number of matching resources across all pages",
-            "default": 0,
-            "examples": [
-              47
-            ]
+            "description": "Array of order summary objects. Use GET /v1/orders/{id} for full detail."
           },
           "cursor": {
             "anyOf": [
@@ -4773,7 +4856,7 @@
             "title": "Cursor",
             "description": "Pass as `cursor` query param to fetch the next page",
             "examples": [
-              "lst_7kQ2xY9mN3pR5tW1vB8a"
+              "ord_7kQ2xY9mN3pR5tW1vB8a"
             ]
           },
           "has_more": {
@@ -5161,6 +5244,171 @@
         ],
         "title": "OrderStatus"
       },
+      "OrderSummary": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "order",
+            "title": "Object",
+            "description": "Object type identifier. Always `order`.",
+            "default": "order",
+            "examples": [
+              "order"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique order ID (ord_ prefixed).",
+            "examples": [
+              "ord_9xM4kP7nR2qT5wY1"
+            ]
+          },
+          "listing_id": {
+            "type": "string",
+            "title": "Listing Id",
+            "description": "ID of the purchased listing",
+            "examples": [
+              "lst_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "buyer_email": {
+            "type": "string",
+            "title": "Buyer Email",
+            "description": "Buyer's email address.",
+            "examples": [
+              "buyer@example.com"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "title": "Amount",
+            "description": "Amount paid in cents.",
+            "examples": [
+              2900
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Three-letter ISO currency code, uppercase",
+            "examples": [
+              "USD"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus",
+            "description": "Current order status.",
+            "examples": [
+              "paid"
+            ]
+          },
+          "has_deliverables": {
+            "type": "boolean",
+            "title": "Has Deliverables",
+            "description": "Whether auto-fulfilled by ListBee.",
+            "examples": [
+              false
+            ]
+          },
+          "payment_status": {
+            "type": "string",
+            "title": "Payment Status",
+            "description": "Stripe payment status: unpaid, paid, refunded.",
+            "examples": [
+              "paid"
+            ]
+          },
+          "platform_fee": {
+            "type": "integer",
+            "title": "Platform Fee",
+            "description": "Platform fee in cents.",
+            "default": 0,
+            "examples": [
+              290
+            ]
+          },
+          "refund_amount": {
+            "type": "integer",
+            "title": "Refund Amount",
+            "description": "Amount refunded in cents.",
+            "default": 0,
+            "examples": [
+              0
+            ]
+          },
+          "dispute_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispute Status",
+            "description": "Stripe dispute status if disputed.",
+            "examples": [
+              "needs_response"
+            ]
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "When payment was confirmed",
+            "examples": [
+              "2026-04-02T14:30:00Z"
+            ]
+          },
+          "fulfilled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fulfilled At",
+            "description": "When order was fulfilled",
+            "examples": [
+              "2026-04-02T15:00:00Z"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Time at which the order was created",
+            "examples": [
+              "2026-04-02T14:00:00Z"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "listing_id",
+          "buyer_email",
+          "amount",
+          "currency",
+          "status",
+          "has_deliverables",
+          "payment_status",
+          "created_at"
+        ],
+        "title": "OrderSummary",
+        "description": "Lightweight order for list endpoints. Use GET /v1/orders/{id} for full detail."
+      },
       "PingResponse": {
         "properties": {
           "object": {
@@ -5433,213 +5681,6 @@
         "title": "SetDeliverablesRequest",
         "description": "Replace all deliverables on a listing."
       },
-      "StoreReadiness": {
-        "properties": {
-          "sellable": {
-            "type": "boolean",
-            "title": "Sellable",
-            "description": "True when the store can sell. False means actions are needed.",
-            "examples": [
-              false
-            ]
-          },
-          "actions": {
-            "items": {
-              "$ref": "#/components/schemas/Action"
-            },
-            "type": "array",
-            "title": "Actions",
-            "description": "What's needed to make this store sellable. Empty when sellable is true."
-          },
-          "next": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next",
-            "description": "Code of the highest-priority action. Agents execute this first.",
-            "examples": [
-              "connect_stripe"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "sellable"
-        ],
-        "title": "StoreReadiness"
-      },
-      "StoreResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "store",
-            "title": "Object",
-            "description": "Object type identifier. Always `store`.",
-            "default": "store",
-            "examples": [
-              "store"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Unique store ID (st_ prefixed).",
-            "examples": [
-              "st_7kQ2xY9mN3pR5tW1vB8a"
-            ]
-          },
-          "display_name": {
-            "type": "string",
-            "title": "Display Name",
-            "description": "Store display name shown to buyers.",
-            "examples": [
-              "Acme Agency"
-            ]
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug",
-            "description": "URL-safe store slug used in checkout URLs.",
-            "examples": [
-              "acme-agency"
-            ]
-          },
-          "bio": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bio",
-            "description": "Store bio shown on product pages.",
-            "examples": [
-              "We make great things."
-            ]
-          },
-          "has_avatar": {
-            "type": "boolean",
-            "title": "Has Avatar",
-            "description": "True if an avatar image has been uploaded.",
-            "default": false,
-            "examples": [
-              false
-            ]
-          },
-          "url": {
-            "type": "string",
-            "title": "Url",
-            "description": "Public store URL.",
-            "examples": [
-              "https://buy.listbee.so/acme-agency"
-            ]
-          },
-          "api_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Api Key",
-            "description": "Raw API key, shown once at creation. Use as Bearer token.",
-            "examples": [
-              "lb_abc123"
-            ]
-          },
-          "readiness": {
-            "$ref": "#/components/schemas/StoreReadiness",
-            "description": "Store readiness. Check `actions` for what's needed before you can sell."
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "display_name",
-          "slug",
-          "url",
-          "readiness"
-        ],
-        "title": "StoreResponse"
-      },
-      "StoreUpdateRequest": {
-        "properties": {
-          "display_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name",
-            "description": "Store display name shown to buyers",
-            "examples": [
-              "Acme Agency"
-            ]
-          },
-          "bio": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bio",
-            "description": "Store bio shown on product pages",
-            "examples": [
-              "We make great things."
-            ]
-          },
-          "avatar": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatar",
-            "description": "File token from POST /v1/files with purpose=avatar. Upload an image first, then pass the file token here. Set to empty string to remove the avatar.",
-            "examples": [
-              "file_7kQ2xY9mN3pR5tW1vB8a01"
-            ]
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 60,
-                "minLength": 3,
-                "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slug",
-            "description": "URL-safe store slug used in checkout URLs. Must be 3-60 characters, start and end with alphanumeric, contain only lowercase letters, digits, and hyphens.",
-            "examples": [
-              "acme-agency"
-            ]
-          }
-        },
-        "type": "object",
-        "title": "StoreUpdateRequest"
-      },
       "StripeConnectSessionResponse": {
         "properties": {
           "object": {
@@ -5744,22 +5785,6 @@
             "description": "Product name",
             "examples": [
               "SEO Playbook 2026"
-            ]
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 80
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slug",
-            "description": "URL slug for the product page (e.g. 'seo-playbook'). Only changeable in draft. Auto-slugified. On conflict, random suffix appended.",
-            "examples": [
-              "seo-playbook-2026"
             ]
           },
           "price": {
