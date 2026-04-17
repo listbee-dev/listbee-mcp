@@ -2,7 +2,7 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-16T22:23:52.120Z
+// generated_at: 2026-04-17T07:21:09.707Z
 // sha256: 4a49dcb937329d43f9eed94c502019a19a307cf9ac5178c7dba28498cfa78ac3
 
 import { z } from "zod";
