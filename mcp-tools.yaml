@@ -308,9 +308,9 @@ tools:
       within 24h. Responds 202 with scheduled_attempts count. Zero means the
       listing has no agent_callback_url — agent should poll /v1/orders or
       /v1/events instead.
-    hints: >
-      Agents should only call this after confirming their callback handler is
-      healthy — otherwise retries will be consumed.
+    hints:
+      - "Only call after confirming the callback handler is healthy — otherwise retries will be consumed"
+      - "If scheduled_attempts is 0, the listing has no agent_callback_url — poll /v1/orders or /v1/events instead"
 
   # --- Account ---
   - type: operation
