@@ -33,7 +33,7 @@ const SERVER_INSTRUCTIONS = `ListBee is a commerce API for AI agents.
 Golden path: create_listing → get_listing (check readiness) → publish_listing.
 Set deliverable on the listing at create time for managed auto-delivery, or set agent_callback_url for async agent fulfillment.
 Always call get_listing after mutations to inspect readiness.
-readiness.sellable tells you if the listing is live.
+readiness.buyable tells you if the listing is live.
 readiness.actions lists what's missing — kind:api means you can fix it, kind:human means the user must.
 Every readiness action includes a resolve object with the exact method and endpoint to fix it — follow resolve directly.
 

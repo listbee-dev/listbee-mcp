@@ -323,7 +323,7 @@
           "Listings"
         ],
         "summary": "Create listing",
-        "description": "Create a listing to sell digital content. Returns the listing and a one-time `signing_secret` for webhook verification. Store `signing_secret` immediately \u2014 subsequent reads only expose the last 4 chars via `signing_secret_preview`. If readiness.sellable is false, follow readiness.actions to resolve. readiness.next is the first action to take. When your account uses a Stripe test key, checkout URLs point to Stripe test mode.",
+        "description": "Create a live, buyable listing in one call. Returns the listing and a one-time `signing_secret` (shown once \u2014 store it). The agent supplies `deliverable` for instant delivery, or leaves it null for async fulfillment via POST /v1/orders/{order_id}/fulfill.\n\nThe listing is created with `status: published` automatically. If the account's Stripe Connect is not active, `readiness.buyable` is false and `readiness.actions` surfaces the `stripe_connect_required` action. The checkout URL works, but buyers see the readiness blocker until Stripe onboarding finishes.\n\nUnknown or killed fields return 422 (strict schema). Metadata supports up to 50 keys, 40-char keys, 10,000-char values, 50 KB total.",
         "operationId": "create_listing",
         "security": [
           {
@@ -346,7 +346,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreateListingResponse"
+                  "$ref": "#/components/schemas/ListingCreateResponse"
                 }
               }
             }
@@ -362,7 +362,7 @@
             }
           },
           "422": {
-            "description": "Validation error (code: `validation_error`). Check `detail` for specifics: price must be positive, slug already exists, deliverable URL unreachable or unsupported format.",
+            "description": "Validation error. `errors` array lists each offending field.",
             "content": {
               "application/json": {
                 "schema": {
@@ -388,7 +388,7 @@
           "Listings"
         ],
         "summary": "List listings",
-        "description": "List all listings for the authenticated account. Filter by status. Cursor-paginated. Returns lightweight summaries \u2014 use GET /v1/listings/{listing_id} for full detail including deliverables, readiness, reviews, and checkout schema.",
+        "description": "List all listings for the authenticated account. Returns lightweight summaries \u2014 call GET /v1/listings/{listing_id} for full detail (readiness, stats, deliverable, checkout schema). Cursor-paginated: pass `cursor` from the previous response to fetch the next page. Filter by `status` to find only published, draft, or archived listings.",
         "operationId": "list_listings",
         "security": [
           {
@@ -409,13 +409,13 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by listing status.",
+              "description": "Filter by listing status (`published`, `draft`, or `archived`). Omit to return all.",
               "examples": [
-                "active"
+                "published"
               ],
               "title": "Status"
             },
-            "description": "Filter by listing status."
+            "description": "Filter by listing status (`published`, `draft`, or `archived`). Omit to return all."
           },
           {
             "name": "cursor",
@@ -430,10 +430,13 @@
                   "type": "null"
                 }
               ],
-              "description": "Pagination cursor from a previous response.",
+              "description": "Opaque pagination cursor from a previous response's `cursor` field. Omit for the first page.",
+              "examples": [
+                "lst_7kQ2xY9mN3pR5tW1vB8a"
+              ],
               "title": "Cursor"
             },
-            "description": "Pagination cursor from a previous response."
+            "description": "Opaque pagination cursor from a previous response's `cursor` field. Omit for the first page."
           },
           {
             "name": "limit",
@@ -443,14 +446,14 @@
               "type": "integer",
               "maximum": 100,
               "minimum": 1,
-              "description": "Maximum number of listings to return.",
+              "description": "Number of listings to return per page. Default 20, max 100.",
               "examples": [
                 20
               ],
               "default": 20,
               "title": "Limit"
             },
-            "description": "Maximum number of listings to return."
+            "description": "Number of listings to return per page. Default 20, max 100."
           }
         ],
         "responses": {
@@ -493,7 +496,7 @@
           "Listings"
         ],
         "summary": "Get listing",
-        "description": "Get a single listing by ID. Check readiness.sellable \u2014 if false, readiness.actions tells you what's needed.",
+        "description": "Fetch a single listing by ID. Returns full detail: all display fields, deliverable, checkout schema, readiness signal, and aggregate stats (views, purchases, gmv_minor). Check `readiness.buyable` \u2014 if false, `readiness.next` names the highest-priority action code and `readiness.actions` provides machine-readable resolve instructions.",
         "operationId": "get_listing",
         "security": [
           {
@@ -507,13 +510,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Listing ID (lst_ prefixed).",
+              "description": "Listing ID (lst_ prefixed). Returned as `id` on listing objects.",
               "examples": [
-                "lst_abc123"
+                "lst_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Listing Id"
             },
-            "description": "Listing ID (lst_ prefixed)."
+            "description": "Listing ID (lst_ prefixed). Returned as `id` on listing objects."
           }
         ],
         "responses": {
@@ -522,7 +525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "$ref": "#/components/schemas/ListingDetailResponse"
                 }
               }
             }
@@ -564,7 +567,7 @@
           "Listings"
         ],
         "summary": "Update listing",
-        "description": "Update listing fields. Returns updated listing with readiness. To rotate the signing secret, include `signing_secret` in the request body: set to `null` to auto-generate a new secret, or provide a custom string. When rotation occurs, the response object is `listing_with_secret` and includes the full new `signing_secret` once.",
+        "description": "Partial update \u2014 only fields present in the request body are changed. Omitted fields are left as-is. Pass null explicitly to clear a nullable field. Unknown fields return 422 (strict schema). Updates to published listings take effect immediately. To rotate the signing secret, include `signing_secret` in the body (pass null to auto-generate, or a string to set a specific value) \u2014 the response object switches to `listing_with_secret` and the new secret is returned once.",
         "operationId": "update_listing",
         "security": [
           {
@@ -578,13 +581,13 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Listing ID (lst_ prefixed).",
+              "description": "Listing ID (lst_ prefixed). Returned as `id` on listing objects.",
               "examples": [
-                "lst_abc123"
+                "lst_7kQ2xY9mN3pR5tW1vB8a"
               ],
               "title": "Listing Id"
             },
-            "description": "Listing ID (lst_ prefixed)."
+            "description": "Listing ID (lst_ prefixed). Returned as `id` on listing objects."
           }
         ],
         "requestBody": {
@@ -599,19 +602,20 @@
         },
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Listing updated.",
             "content": {
               "application/json": {
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/ListingResponse"
+                      "$ref": "#/components/schemas/ListingDetailResponse"
                     },
                     {
                       "$ref": "#/components/schemas/RotateSigningSecretResponse"
                     }
                   ],
-                  "title": "Response Update Listing"
+                  "title": "Response Update Listing",
+                  "$ref": "#/components/schemas/ListingDetailResponse"
                 }
               }
             }
@@ -637,7 +641,7 @@
             }
           },
           "422": {
-            "description": "Validation error.",
+            "description": "Validation error. `errors` array lists each offending field.",
             "content": {
               "application/json": {
                 "schema": {
@@ -748,7 +752,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "$ref": "#/components/schemas/ListingDetailResponse"
                 }
               }
             }
@@ -831,7 +835,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "$ref": "#/components/schemas/ListingDetailResponse"
                 }
               }
             }
@@ -904,7 +908,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "$ref": "#/components/schemas/ListingDetailResponse"
                 }
               }
             }
@@ -1972,7 +1976,6 @@
           "stripe_charges_disabled",
           "account_deleted",
           "listing_unpublished",
-          "listing_deliverable_missing",
           "fulfillment_pending",
           "dispute_open"
         ],
@@ -2145,15 +2148,6 @@
           "created_at"
         ],
         "title": "ApiKeyResponse"
-      },
-      "BlurMode": {
-        "type": "string",
-        "enum": [
-          "true",
-          "false",
-          "auto"
-        ],
-        "title": "BlurMode"
       },
       "BootstrapPollResponse": {
         "properties": {
@@ -2434,6 +2428,7 @@
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "key",
@@ -2455,20 +2450,105 @@
       },
       "CreateListingRequest": {
         "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Name",
+            "description": "Product name shown on the product page.",
+            "examples": [
+              "SEO Playbook 2026",
+              "Premium Stock Picks"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 50.0,
+            "title": "Price",
+            "description": "Price in cents (smallest currency unit). Minimum 50 (= $0.50). Examples: $5 = 500, $29 = 2900, $99.99 = 9999.",
+            "examples": [
+              500,
+              2900,
+              9999
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "Three-letter ISO 4217 currency code (lowercase). Defaults to account currency if omitted.",
+            "examples": [
+              "usd",
+              "eur",
+              "gbp"
+            ]
+          },
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliverableRequest"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Content to deliver automatically on payment. Omit for agent-fulfilled (ASYNC) listings."
+          },
+          "agent_callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL. Receives order.paid, order.fulfilled, order.refunded, order.disputed events signed with the listing's signing_secret (HMAC-SHA256). Must use https:// (or http://localhost for local dev). Leave null to rely on polling /v1/orders or /v1/events instead.",
+            "examples": [
+              "https://my-agent.example.com/fulfill"
+            ]
+          },
+          "signing_secret": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 16
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signing Secret",
+            "description": "Custom signing secret for this listing. Used to verify webhook payloads via HMAC-SHA256. If omitted, a secure secret is auto-generated. Min 16 chars, max 256 chars. Shown once in the create response \u2014 not exposed on subsequent reads. Store it immediately. Rotate via PATCH with signing_secret=null (regenerate) or a new value.",
+            "examples": [
+              "my-long-signing-secret-value"
+            ]
+          },
           "checkout_schema": {
             "anyOf": [
               {
                 "items": {
                   "$ref": "#/components/schemas/CheckoutFieldInput"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 5
               },
               {
                 "type": "null"
               }
             ],
             "title": "Checkout Schema",
-            "description": "Custom fields to collect from the buyer at checkout (e.g. size, color, shipping address). Email is always collected.",
+            "description": "Custom fields to collect from the buyer at checkout (e.g. size, color, shipping address). Max 5 fields. Email is always collected.",
             "examples": [
               [
                 {
@@ -2484,35 +2564,7 @@
               ]
             ]
           },
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Product name shown on the product page",
-            "examples": [
-              "SEO Playbook 2026",
-              "Premium Stock Picks"
-            ]
-          },
-          "fulfillment_mode": {
-            "$ref": "#/components/schemas/FulfillmentMode",
-            "description": "STATIC: listing ships with a pre-baked deliverable, delivered at order.paid. ASYNC: agent delivers via POST /v1/orders/{id}/fulfill after paid.",
-            "default": "async",
-            "examples": [
-              "async"
-            ]
-          },
-          "deliverable": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Deliverable"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "For STATIC listings, the content to deliver. Agent-supplied URL or Markdown text. Must be absent for ASYNC listings."
-          },
-          "agent_callback_url": {
+          "image_url": {
             "anyOf": [
               {
                 "type": "string",
@@ -2522,34 +2574,10 @@
                 "type": "null"
               }
             ],
-            "title": "Agent Callback Url",
-            "description": "Per-listing webhook URL. Receives order.paid, order.fulfilled, order.refunded, order.disputed events signed with the listing's signing_secret (HMAC-SHA256). Leave null to rely on polling /v1/orders or /v1/events instead."
-          },
-          "price": {
-            "type": "integer",
-            "exclusiveMinimum": 0.0,
-            "title": "Price",
-            "description": "Price in cents (smallest currency unit). Examples: $5 = 500, $29 = 2900, $99.99 = 9999.",
+            "title": "Image Url",
+            "description": "Cover image URL. Must use https://. Shown prominently on the product page. Recommended: 1200x630px.",
             "examples": [
-              500,
-              2900,
-              9999
-            ]
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 5000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Product description shown on the product page. Improves buyer conversion. Plain text, max 5000 chars.",
-            "examples": [
-              "A comprehensive guide to modern SEO techniques."
+              "https://cdn.example.com/covers/abc123.jpg"
             ]
           },
           "tagline": {
@@ -2568,20 +2596,37 @@
               "Updated for 2026 algorithm changes"
             ]
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Product description shown on the product page. Improves buyer conversion. Plain text, max 5000 chars.",
+            "examples": [
+              "A comprehensive guide to modern SEO techniques."
+            ]
+          },
           "highlights": {
             "anyOf": [
               {
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
               }
             ],
             "title": "Highlights",
-            "description": "Bullet-point features shown as badges on the product page. Max 10 items. Each should be short (2-4 words).",
+            "description": "Bullet-point features shown on the product page. Max 10 items. Each should be short (2-4 words).",
             "examples": [
               [
                 "50+ pages",
@@ -2607,113 +2652,11 @@
               "Download Now"
             ]
           },
-          "cover": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cover",
-            "description": "Cover image CDN key. Shown prominently on the product page. Recommended: 1200x630px.",
-            "examples": [
-              "covers/abc123.jpg"
-            ]
-          },
-          "signing_secret": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Signing Secret",
-            "description": "Custom signing secret for this listing. Used to verify webhook payloads via HMAC-SHA256. If omitted, a secure secret is auto-generated. Shown once in this response \u2014 subsequent reads only show `signing_secret_preview` (last 4 chars). Rotate via PATCH with signing_secret=null (regenerate) or a new value.",
-            "examples": [
-              "my-secret-value"
-            ]
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata",
-            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Use for your own tracking (campaign IDs, source tags). Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
-            "examples": [
-              {
-                "campaign": "launch-week",
-                "source": "n8n"
-              }
-            ]
-          },
-          "utm_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Source",
-            "description": "UTM source tag for Google Analytics. Defaults to 'listbee' if omitted",
-            "examples": [
-              "google",
-              "newsletter",
-              "twitter"
-            ]
-          },
-          "utm_medium": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Medium",
-            "description": "UTM medium tag for Google Analytics. Defaults to 'product_page' if omitted",
-            "examples": [
-              "cpc",
-              "email",
-              "social"
-            ]
-          },
-          "utm_campaign": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Campaign",
-            "description": "UTM campaign tag for Google Analytics. Defaults to the listing slug if omitted",
-            "examples": [
-              "spring-sale",
-              "launch-week"
-            ]
-          },
           "compare_at_price": {
             "anyOf": [
               {
                 "type": "integer",
-                "exclusiveMinimum": 0.0
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -2732,7 +2675,8 @@
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
@@ -2747,14 +2691,6 @@
               ]
             ]
           },
-          "cover_blur": {
-            "$ref": "#/components/schemas/BlurMode",
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
-            "default": "auto",
-            "examples": [
-              "auto"
-            ]
-          },
           "rating": {
             "anyOf": [
               {
@@ -2765,7 +2701,7 @@
               }
             ],
             "title": "Rating",
-            "description": "Seller-provided aggregate star rating (1-5). Shown on the product page. Values outside range clamped.",
+            "description": "Seller-provided aggregate star rating. Must be between 1.0 and 5.0 inclusive.",
             "examples": [
               4.8,
               4.5
@@ -2794,7 +2730,8 @@
                 "items": {
                   "$ref": "#/components/schemas/ReviewInput"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
@@ -2818,7 +2755,8 @@
                 "items": {
                   "$ref": "#/components/schemas/FaqItemInput"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
@@ -2834,76 +2772,35 @@
                 }
               ]
             ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Use for your own tracking (campaign IDs, source tags). Limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 10000 chars, total \u2264 50000 bytes.",
+            "examples": [
+              {
+                "campaign": "launch-week",
+                "source": "n8n"
+              }
+            ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "name",
           "price"
         ],
         "title": "CreateListingRequest",
-        "description": "All optional display fields (name, description, tagline, highlights, cta, badges, cover, reviews, faqs) appear on the product page buyers see."
-      },
-      "CreateListingResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "listing_with_secret",
-            "title": "Object",
-            "description": "Object type identifier. Always `listing_with_secret`.",
-            "default": "listing_with_secret",
-            "examples": [
-              "listing_with_secret"
-            ]
-          },
-          "listing": {
-            "$ref": "#/components/schemas/ListingResponse",
-            "description": "The created listing."
-          },
-          "signing_secret": {
-            "type": "string",
-            "title": "Signing Secret",
-            "description": "Full listing signing secret \u2014 shown once at creation. Store it immediately. Use to verify HMAC-SHA256 signatures on webhook payloads for this listing. Subsequent reads only expose `signing_secret_preview` (last 4 chars) via GET /v1/listings/{id}.",
-            "examples": [
-              "Xk9mN2pR5tW1vB8aQ4nL7xY0zJ3eF6cH"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "listing",
-          "signing_secret"
-        ],
-        "title": "CreateListingResponse",
-        "description": "Returned by POST /v1/listings. Contains the listing and the full signing_secret (shown once)."
-      },
-      "Deliverable": {
-        "properties": {
-          "schema_version": {
-            "type": "integer",
-            "title": "Schema Version",
-            "default": 1
-          },
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "type": {
-            "$ref": "#/components/schemas/DeliverableType"
-          },
-          "value": {
-            "type": "string",
-            "title": "Value",
-            "description": "Literal URL or Markdown text"
-          }
-        },
-        "type": "object",
-        "required": [
-          "type",
-          "value"
-        ],
-        "title": "Deliverable",
-        "description": "Value object representing digital content that ListBee can deliver."
+        "description": "All optional display fields (name, description, tagline, highlights, cta, badges, image_url, reviews, faqs) appear on the product page buyers see."
       },
       "DeliverableInputRequest": {
         "properties": {
@@ -2914,7 +2811,7 @@
               "url"
             ]
           },
-          "value": {
+          "content": {
             "anyOf": [
               {
                 "type": "string"
@@ -2923,7 +2820,7 @@
                 "type": "null"
               }
             ],
-            "title": "Value",
+            "title": "Content",
             "description": "URL (https required) or text content. Required when type is `url` or `text`.",
             "examples": [
               "https://example.com/secret-area"
@@ -2937,53 +2834,13 @@
         "title": "DeliverableInputRequest",
         "description": "Typed deliverable input. Shared by PUT /deliverables and POST /fulfill."
       },
-      "DeliverableResponse": {
+      "DeliverableRequest": {
         "properties": {
-          "object": {
-            "type": "string",
-            "const": "deliverable",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "deliverable",
-            "examples": [
-              "deliverable"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Unique deliverable identifier (del_ prefixed).",
-            "examples": [
-              "del_7kQ2xY9mN3pR5tW1vB8a01"
-            ]
-          },
           "type": {
             "$ref": "#/components/schemas/DeliverableType",
-            "description": "Deliverable type.",
+            "description": "Deliverable type: `url` (redirect link) or `text` (literal string).",
             "examples": [
               "url"
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/DeliverableStatus",
-            "description": "Processing status.",
-            "examples": [
-              "ready"
-            ]
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url",
-            "description": "Redirect URL (url type only).",
-            "examples": [
-              "https://example.com/secret"
             ]
           },
           "content": {
@@ -2996,28 +2853,51 @@
               }
             ],
             "title": "Content",
-            "description": "Text content (text type only).",
+            "description": "For `url` type: must start with http:// or https://. For `text` type: plain text content, max 10000 chars.",
             "examples": [
-              "Buy signal: AAPL"
+              "https://example.com/secret-area"
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
-          "type",
-          "status"
+          "type"
+        ],
+        "title": "DeliverableRequest",
+        "description": "Strict deliverable input for POST /v1/listings. Uses extra=forbid."
+      },
+      "DeliverableResponse": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/DeliverableType",
+            "description": "Deliverable type: `url` (redirect link) or `text` (inline string delivered to buyer).",
+            "examples": [
+              "url"
+            ]
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content",
+            "description": "Deliverable content. Present on owner reads; null on public reads (buyers do not see it before purchase). For `url` type: a URL the buyer is redirected to. For `text` type: the literal string delivered.",
+            "examples": [
+              "https://example.com/secret-area"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type"
         ],
         "title": "DeliverableResponse"
-      },
-      "DeliverableStatus": {
-        "type": "string",
-        "enum": [
-          "processing",
-          "ready",
-          "failed"
-        ],
-        "title": "DeliverableStatus"
       },
       "DeliverableType": {
         "type": "string",
@@ -3198,6 +3078,7 @@
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "q",
@@ -3259,6 +3140,631 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ListingBase": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "listing",
+            "title": "Object",
+            "description": "Object type discriminator. Always `listing`.",
+            "default": "listing",
+            "examples": [
+              "listing"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique listing ID (lst_ prefixed). Use this for all API operations.",
+            "examples": [
+              "lst_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Shareable product page URL in the form `/l/{id}/{slug}`. The slug is derived from the listing name at serialization time and is not persisted \u2014 the ID is the routing key. Share this URL with buyers.",
+            "examples": [
+              "https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Product name shown on the product page.",
+            "examples": [
+              "SEO Playbook 2026"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "title": "Price",
+            "description": "Price in cents (smallest currency unit). $29 = 2900.",
+            "examples": [
+              2900
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Three-letter ISO 4217 currency code (lowercase).",
+            "examples": [
+              "usd"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus",
+            "description": "Listing lifecycle status: `draft`, `published`, or `archived`. Only published listings have a live checkout URL.",
+            "examples": [
+              "published"
+            ]
+          },
+          "fulfillment_mode": {
+            "$ref": "#/components/schemas/FulfillmentMode",
+            "description": "Computed from deliverable presence. `MANAGED` when a deliverable is attached (ListBee delivers automatically). `ASYNC` when no deliverable \u2014 your agent handles delivery via POST /v1/orders/{order_id}/fulfill or webhook.",
+            "examples": [
+              "MANAGED"
+            ]
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "Cover image URL (https://). Shown prominently on the product page. Null if not set.",
+            "examples": [
+              "https://cdn.example.com/covers/abc123.jpg"
+            ]
+          },
+          "agent_callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL for order events (signed with this listing's signing_secret). Null if not set.",
+            "examples": [
+              "https://my-agent.example.com/fulfill"
+            ]
+          },
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliverableResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The stored deliverable ListBee delivers automatically on payment. Null for ASYNC listings. Content is redacted on non-owner reads."
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ListingReadiness",
+            "description": "Agent-facing readiness signal. Check `readiness.buyable` first \u2014 if false, `readiness.next` gives the highest-priority action code and `readiness.actions` lists each blocker with resolve instructions."
+          },
+          "checkout_schema": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CheckoutFieldInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkout Schema",
+            "description": "Custom fields collected from the buyer at checkout. Null if no custom fields configured."
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Key-value pairs you attached at creation or update. Forwarded in webhook event payloads. Null if not set."
+          },
+          "tagline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tagline",
+            "description": "Short tagline shown below the product name on the product page.",
+            "examples": [
+              "Updated for 2026 algorithm changes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Product description shown on the product page."
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights",
+            "description": "Bullet-point feature list shown on the product page. Empty list if none set.",
+            "examples": [
+              [
+                "50+ pages",
+                "Actionable tips"
+              ]
+            ]
+          },
+          "faqs": {
+            "items": {
+              "$ref": "#/components/schemas/FaqItemInput"
+            },
+            "type": "array",
+            "title": "Faqs",
+            "description": "FAQ accordion items shown on the product page. Empty list if none set."
+          },
+          "cta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta",
+            "description": "Buy button text. Null means the default 'Buy Now' is used.",
+            "examples": [
+              "Get Instant Access"
+            ]
+          },
+          "compare_at_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare At Price",
+            "description": "Strikethrough price in cents shown alongside the regular price. Null if not set.",
+            "examples": [
+              4900
+            ]
+          },
+          "badges": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Badges",
+            "description": "Short promotional badges shown on the product page. Empty list if none set.",
+            "examples": [
+              [
+                "Best seller",
+                "Limited time"
+              ]
+            ]
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating",
+            "description": "Seller-provided aggregate star rating (1.0\u20135.0). Null if not set.",
+            "examples": [
+              4.8
+            ]
+          },
+          "rating_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Count",
+            "description": "Seller-provided review/purchase count shown alongside the rating. Null if not set.",
+            "examples": [
+              1243
+            ]
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewInput"
+            },
+            "type": "array",
+            "title": "Reviews",
+            "description": "Featured seller-provided review cards shown on the product page. Empty list if none set."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "ISO 8601 timestamp when the listing was created."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "name",
+          "price",
+          "currency",
+          "status",
+          "fulfillment_mode",
+          "readiness",
+          "created_at"
+        ],
+        "title": "ListingBase",
+        "description": "Listing fields returned to the owner. No stats, no signing_secret."
+      },
+      "ListingCreateResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "listing_with_secret",
+            "title": "Object",
+            "description": "Object type discriminator. Always `listing_with_secret` \u2014 signals that `signing_secret` is present.",
+            "default": "listing_with_secret",
+            "examples": [
+              "listing_with_secret"
+            ]
+          },
+          "signing_secret": {
+            "type": "string",
+            "title": "Signing Secret",
+            "description": "HMAC-SHA256 signing secret for verifying webhook payloads from this listing. Returned ONCE at creation \u2014 not exposed on subsequent reads. Store it immediately. To rotate, call PUT /v1/listings/{id} with a new `signing_secret` value.",
+            "examples": [
+              "my-long-signing-secret-value"
+            ]
+          },
+          "listing": {
+            "$ref": "#/components/schemas/ListingBase",
+            "description": "The newly created listing object."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "signing_secret",
+          "listing"
+        ],
+        "title": "ListingCreateResponse",
+        "description": "Returned by POST /v1/listings. Envelope with full signing_secret (shown once)."
+      },
+      "ListingDetailResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "listing",
+            "title": "Object",
+            "description": "Object type discriminator. Always `listing`.",
+            "default": "listing",
+            "examples": [
+              "listing"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique listing ID (lst_ prefixed). Use this for all API operations.",
+            "examples": [
+              "lst_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Shareable product page URL in the form `/l/{id}/{slug}`. The slug is derived from the listing name at serialization time and is not persisted \u2014 the ID is the routing key. Share this URL with buyers.",
+            "examples": [
+              "https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Product name shown on the product page.",
+            "examples": [
+              "SEO Playbook 2026"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "title": "Price",
+            "description": "Price in cents (smallest currency unit). $29 = 2900.",
+            "examples": [
+              2900
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Three-letter ISO 4217 currency code (lowercase).",
+            "examples": [
+              "usd"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus",
+            "description": "Listing lifecycle status: `draft`, `published`, or `archived`. Only published listings have a live checkout URL.",
+            "examples": [
+              "published"
+            ]
+          },
+          "fulfillment_mode": {
+            "$ref": "#/components/schemas/FulfillmentMode",
+            "description": "Computed from deliverable presence. `MANAGED` when a deliverable is attached (ListBee delivers automatically). `ASYNC` when no deliverable \u2014 your agent handles delivery via POST /v1/orders/{order_id}/fulfill or webhook.",
+            "examples": [
+              "MANAGED"
+            ]
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url",
+            "description": "Cover image URL (https://). Shown prominently on the product page. Null if not set.",
+            "examples": [
+              "https://cdn.example.com/covers/abc123.jpg"
+            ]
+          },
+          "agent_callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL for order events (signed with this listing's signing_secret). Null if not set.",
+            "examples": [
+              "https://my-agent.example.com/fulfill"
+            ]
+          },
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliverableResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The stored deliverable ListBee delivers automatically on payment. Null for ASYNC listings. Content is redacted on non-owner reads."
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ListingReadiness",
+            "description": "Agent-facing readiness signal. Check `readiness.buyable` first \u2014 if false, `readiness.next` gives the highest-priority action code and `readiness.actions` lists each blocker with resolve instructions."
+          },
+          "checkout_schema": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CheckoutFieldInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkout Schema",
+            "description": "Custom fields collected from the buyer at checkout. Null if no custom fields configured."
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Key-value pairs you attached at creation or update. Forwarded in webhook event payloads. Null if not set."
+          },
+          "tagline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tagline",
+            "description": "Short tagline shown below the product name on the product page.",
+            "examples": [
+              "Updated for 2026 algorithm changes"
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Product description shown on the product page."
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Highlights",
+            "description": "Bullet-point feature list shown on the product page. Empty list if none set.",
+            "examples": [
+              [
+                "50+ pages",
+                "Actionable tips"
+              ]
+            ]
+          },
+          "faqs": {
+            "items": {
+              "$ref": "#/components/schemas/FaqItemInput"
+            },
+            "type": "array",
+            "title": "Faqs",
+            "description": "FAQ accordion items shown on the product page. Empty list if none set."
+          },
+          "cta": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cta",
+            "description": "Buy button text. Null means the default 'Buy Now' is used.",
+            "examples": [
+              "Get Instant Access"
+            ]
+          },
+          "compare_at_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compare At Price",
+            "description": "Strikethrough price in cents shown alongside the regular price. Null if not set.",
+            "examples": [
+              4900
+            ]
+          },
+          "badges": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Badges",
+            "description": "Short promotional badges shown on the product page. Empty list if none set.",
+            "examples": [
+              [
+                "Best seller",
+                "Limited time"
+              ]
+            ]
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating",
+            "description": "Seller-provided aggregate star rating (1.0\u20135.0). Null if not set.",
+            "examples": [
+              4.8
+            ]
+          },
+          "rating_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Count",
+            "description": "Seller-provided review/purchase count shown alongside the rating. Null if not set.",
+            "examples": [
+              1243
+            ]
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewInput"
+            },
+            "type": "array",
+            "title": "Reviews",
+            "description": "Featured seller-provided review cards shown on the product page. Empty list if none set."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "ISO 8601 timestamp when the listing was created."
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ListingStats",
+            "description": "Aggregate performance stats for this listing: views, purchases, and gross merchandise value in cents."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "name",
+          "price",
+          "currency",
+          "status",
+          "fulfillment_mode",
+          "readiness",
+          "created_at",
+          "stats"
+        ],
+        "title": "ListingDetailResponse",
+        "description": "Full listing detail: base fields + stats. Returned by GET /v1/listings/{id}."
+      },
       "ListingListResponse": {
         "properties": {
           "object": {
@@ -3312,10 +3818,10 @@
       },
       "ListingReadiness": {
         "properties": {
-          "sellable": {
+          "buyable": {
             "type": "boolean",
-            "title": "Sellable",
-            "description": "True when buyers can purchase. False means actions are needed.",
+            "title": "Buyable",
+            "description": "True when buyers can complete a purchase right now. False means at least one blocker exists \u2014 check `actions` and `next` for what to fix.",
             "examples": [
               true
             ]
@@ -3326,7 +3832,7 @@
             },
             "type": "array",
             "title": "Actions",
-            "description": "What's needed to make this listing sellable. Empty when sellable is true."
+            "description": "Ordered list of actions blocking or available to improve this listing. Each action has a `code`, `kind` (api = agent can resolve directly; human = requires browser/human), `priority` (required = blocks buyable; suggested = optional improvement), `message`, and `resolve` instructions. Empty when `buyable` is true."
           },
           "next": {
             "anyOf": [
@@ -3338,7 +3844,7 @@
               }
             ],
             "title": "Next",
-            "description": "Code of the highest-priority action. Agents execute this first.",
+            "description": "Code of the single highest-priority action to take next. Prefers `kind: api` actions so agents can self-heal without human intervention. Null when `buyable` is true.",
             "examples": [
               "stripe_connect_required"
             ]
@@ -3346,396 +3852,38 @@
         },
         "type": "object",
         "required": [
-          "sellable"
+          "buyable"
         ],
         "title": "ListingReadiness"
       },
-      "ListingResponse": {
+      "ListingStats": {
         "properties": {
-          "object": {
-            "type": "string",
-            "const": "listing",
-            "title": "Object",
-            "description": "Object type identifier. Always `listing`.",
-            "default": "listing",
-            "examples": [
-              "listing"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Unique listing ID (lst_ prefixed).",
-            "examples": [
-              "lst_7kQ2xY9mN3pR5tW1vB8a"
-            ]
-          },
-          "short_code": {
-            "type": "string",
-            "title": "Short Code",
-            "description": "Short code for the product page URL",
-            "examples": [
-              "seo-playbook"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Product name shown on the product page",
-            "examples": [
-              "SEO Playbook 2026"
-            ]
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description",
-            "description": "Product description shown on the product page. Plain text.",
-            "examples": [
-              "A comprehensive guide to modern SEO."
-            ]
-          },
-          "tagline": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tagline",
-            "description": "Short tagline shown below the product name on the product page.",
-            "examples": [
-              "Updated for 2026 algorithm changes"
-            ]
-          },
-          "highlights": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Highlights",
-            "description": "Bullet-point features shown as badges on the product page.",
-            "examples": [
-              [
-                "50+ pages",
-                "Actionable tips"
-              ]
-            ]
-          },
-          "cta": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cta",
-            "description": "Buy button text on the product page. Defaults to 'Buy Now' if omitted.",
-            "examples": [
-              "Get Instant Access"
-            ]
-          },
-          "price": {
+          "schema_version": {
             "type": "integer",
-            "title": "Price",
-            "description": "Price in cents (smallest currency unit). Examples: $5 = 500, $29 = 2900, $99.99 = 9999.",
-            "examples": [
-              500,
-              2900,
-              9999
-            ]
+            "title": "Schema Version",
+            "default": 1
           },
-          "fulfillment_mode": {
-            "$ref": "#/components/schemas/FulfillmentMode",
-            "description": "STATIC: pre-baked deliverable delivered at order.paid. ASYNC: agent delivers via /v1/orders/{id}/fulfill.",
-            "examples": [
-              "async"
-            ]
+          "views": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Views",
+            "default": 0
           },
-          "deliverable": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DeliverableResponse"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Pre-baked deliverable for STATIC listings. Null for ASYNC listings."
+          "purchases": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Purchases",
+            "default": 0
           },
-          "agent_callback_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Callback Url",
-            "description": "Per-listing webhook URL receiving order events signed with signing_secret.",
-            "examples": [
-              "https://my-agent.com/fulfill"
-            ]
-          },
-          "checkout_schema": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/CheckoutFieldInput"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checkout Schema",
-            "description": "Custom fields collected from the buyer at checkout"
-          },
-          "has_cover": {
-            "type": "boolean",
-            "title": "Has Cover",
-            "description": "True if a cover image exists (uploaded or generated)",
-            "examples": [
-              true
-            ]
-          },
-          "compare_at_price": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Compare At Price",
-            "description": "Strikethrough price in smallest currency unit",
-            "examples": [
-              3900
-            ]
-          },
-          "badges": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Badges",
-            "description": "Short promotional badges shown on the product page (e.g. 'Best seller', 'Limited time').",
-            "examples": [
-              [
-                "Limited time"
-              ]
-            ]
-          },
-          "cover_blur": {
-            "$ref": "#/components/schemas/BlurMode",
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
-            "default": "auto",
-            "examples": [
-              "auto"
-            ]
-          },
-          "rating": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rating",
-            "description": "Seller-provided aggregate star rating (1-5). Shown on the product page.",
-            "examples": [
-              4.8
-            ]
-          },
-          "rating_count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rating Count",
-            "description": "Seller-provided review or purchase count shown alongside the rating on the product page.",
-            "examples": [
-              1243
-            ]
-          },
-          "reviews": {
-            "items": {
-              "$ref": "#/components/schemas/ReviewInput"
-            },
-            "type": "array",
-            "title": "Reviews",
-            "description": "Featured review cards shown on the product page. Seller-provided, not buyer-submitted.",
-            "examples": [
-              []
-            ]
-          },
-          "faqs": {
-            "items": {
-              "$ref": "#/components/schemas/FaqItemInput"
-            },
-            "type": "array",
-            "title": "Faqs",
-            "description": "FAQ accordion shown on the product page. Answers common buyer questions.",
-            "examples": [
-              []
-            ]
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata",
-            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Set at creation or update.",
-            "examples": [
-              {
-                "source": "n8n"
-              }
-            ]
-          },
-          "signing_secret_preview": {
-            "type": "string",
-            "title": "Signing Secret Preview",
-            "description": "Last 4 characters of the listing signing secret. Use this to identify the active secret without revealing it. The full secret is only returned once: on create (in `signing_secret`) or after rotation.",
-            "examples": [
-              "a1b2"
-            ]
-          },
-          "utm_source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Source",
-            "description": "UTM source tag for Google Analytics",
-            "examples": [
-              "google"
-            ]
-          },
-          "utm_medium": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Medium",
-            "description": "UTM medium tag for Google Analytics",
-            "examples": [
-              "cpc"
-            ]
-          },
-          "utm_campaign": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Campaign",
-            "description": "UTM campaign tag for Google Analytics",
-            "examples": [
-              "spring-sale"
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/ListingStatus",
-            "description": "Current listing status. Values: draft (editable, not yet live), published (live, accepting orders), archived (terminal \u2014 removed from sale).",
-            "examples": [
-              "published"
-            ]
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url",
-            "description": "Full product page URL \u2014 share this with buyers",
-            "examples": [
-              "https://buy.listbee.so/seo-playbook"
-            ]
-          },
-          "embed_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Embed Url",
-            "description": "Embeddable product page URL \u2014 use in iframes. Renders minimal version without header/footer.",
-            "examples": [
-              "https://buy.listbee.so/seo-playbook?embed=true"
-            ]
-          },
-          "readiness": {
-            "$ref": "#/components/schemas/ListingReadiness",
-            "description": "Monetization readiness. `sellable` is true when buyers can complete a purchase. If false, `actions` lists what's needed with kind (api/human), resolve details, and `next` points to the highest-priority action."
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Time at which the listing was created",
-            "examples": [
-              "2026-04-01T12:00:00Z"
-            ]
+          "gmv_minor": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Gmv Minor",
+            "default": 0
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "short_code",
-          "name",
-          "highlights",
-          "price",
-          "fulfillment_mode",
-          "has_cover",
-          "signing_secret_preview",
-          "status",
-          "readiness",
-          "created_at"
-        ],
-        "title": "ListingResponse"
+        "title": "ListingStats"
       },
       "ListingStatus": {
         "type": "string",
@@ -3752,7 +3900,7 @@
             "type": "string",
             "const": "listing",
             "title": "Object",
-            "description": "Object type identifier. Always `listing`.",
+            "description": "Object type discriminator. Always `listing`.",
             "default": "listing",
             "examples": [
               "listing"
@@ -3761,23 +3909,23 @@
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "Unique listing ID (lst_ prefixed).",
+            "description": "Unique listing ID (lst_ prefixed). Use this for GET /v1/listings/{id} to fetch full detail.",
             "examples": [
               "lst_7kQ2xY9mN3pR5tW1vB8a"
             ]
           },
-          "short_code": {
+          "url": {
             "type": "string",
-            "title": "Short Code",
-            "description": "Short code for the product page URL",
+            "title": "Url",
+            "description": "Shareable product page URL. Share this with buyers. ID is the routing key; slug is derived from name.",
             "examples": [
-              "seo-playbook"
+              "https://buy.listbee.so/l/lst_7kQ2xY9mN3pR5tW1vB8a/seo-playbook-2026"
             ]
           },
           "name": {
             "type": "string",
             "title": "Name",
-            "description": "Product title",
+            "description": "Product name.",
             "examples": [
               "SEO Playbook 2026"
             ]
@@ -3792,17 +3940,25 @@
               }
             ],
             "title": "Tagline",
-            "description": "One-line pitch",
+            "description": "Short tagline shown below the product name. Null if not set.",
             "examples": [
-              "The only SEO guide you need"
+              "Updated for 2026 algorithm changes"
             ]
           },
           "price": {
             "type": "integer",
             "title": "Price",
-            "description": "Price in cents (smallest currency unit). $29.00 = 2900.",
+            "description": "Price in cents. $29 = 2900.",
             "examples": [
               2900
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "description": "Three-letter ISO 4217 currency code (lowercase).",
+            "examples": [
+              "usd"
             ]
           },
           "compare_at_price": {
@@ -3815,7 +3971,7 @@
               }
             ],
             "title": "Compare At Price",
-            "description": "Original price for strikethrough display",
+            "description": "Strikethrough price in cents. Null if not set.",
             "examples": [
               4900
             ]
@@ -3830,9 +3986,9 @@
               }
             ],
             "title": "Cta",
-            "description": "Call-to-action button text",
+            "description": "Buy button text. Null means default 'Buy Now' is used.",
             "examples": [
-              "Get the Playbook"
+              "Get Instant Access"
             ]
           },
           "badges": {
@@ -3841,7 +3997,7 @@
             },
             "type": "array",
             "title": "Badges",
-            "description": "Short badge labels",
+            "description": "Short promotional badges. Empty list if none set.",
             "examples": [
               [
                 "Best seller"
@@ -3854,29 +4010,29 @@
             },
             "type": "array",
             "title": "Highlights",
-            "description": "Bullet point highlights"
+            "description": "Bullet-point feature list. Empty list if none set.",
+            "examples": [
+              [
+                "50+ pages",
+                "Actionable tips"
+              ]
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/ListingStatus",
-            "description": "Current listing status",
+            "description": "Listing status: `draft`, `published`, or `archived`.",
             "examples": [
               "published"
             ]
           },
           "fulfillment_mode": {
             "$ref": "#/components/schemas/FulfillmentMode",
-            "description": "STATIC: pre-baked deliverable delivered at order.paid. ASYNC: agent delivers via /v1/orders/{id}/fulfill.",
+            "description": "`MANAGED` if a deliverable is attached; `ASYNC` if your agent handles fulfillment.",
             "examples": [
-              "async"
+              "MANAGED"
             ]
           },
-          "has_cover": {
-            "type": "boolean",
-            "title": "Has Cover",
-            "description": "Whether a cover image is set",
-            "default": false
-          },
-          "url": {
+          "image_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -3885,28 +4041,27 @@
                 "type": "null"
               }
             ],
-            "title": "Url",
-            "description": "Full product page URL",
+            "title": "Image Url",
+            "description": "Cover image URL. Null if not set.",
             "examples": [
-              "https://buy.listbee.so/seo-playbook"
+              "https://cdn.example.com/covers/abc123.jpg"
             ]
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At",
-            "description": "Time at which the listing was created",
-            "examples": [
-              "2026-04-01T12:00:00Z"
-            ]
+            "description": "ISO 8601 timestamp when the listing was created."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
-          "short_code",
+          "url",
           "name",
           "price",
+          "currency",
           "status",
           "fulfillment_mode",
           "created_at"
@@ -4722,6 +4877,21 @@
             "examples": [
               "price"
             ]
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Per-field validation errors. Populated on 422 responses when a request body fails validation. Null for other problem types."
           }
         },
         "type": "object",
@@ -4782,7 +4952,7 @@
           "rating": {
             "type": "number",
             "title": "Rating",
-            "description": "Star rating (1\u20135). Values outside this range are clamped automatically",
+            "description": "Star rating (1\u20135). Must be between 1.0 and 5.0 inclusive.",
             "examples": [
               4.5
             ]
@@ -4797,6 +4967,7 @@
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "name",
@@ -4811,29 +4982,21 @@
             "type": "string",
             "const": "listing_with_secret",
             "title": "Object",
-            "description": "Object type identifier. Always `listing_with_secret`.",
-            "default": "listing_with_secret",
-            "examples": [
-              "listing_with_secret"
-            ]
-          },
-          "listing": {
-            "$ref": "#/components/schemas/ListingResponse",
-            "description": "The updated listing."
+            "default": "listing_with_secret"
           },
           "signing_secret": {
             "type": "string",
-            "title": "Signing Secret",
-            "description": "New full signing secret \u2014 shown once after rotation. Store it immediately. Replaces the previous secret for this listing's webhook signature verification.",
-            "examples": [
-              "Yk8mN3pR6tW2vB9aQ5nL8xY1zJ4eF7cH"
-            ]
+            "title": "Signing Secret"
+          },
+          "listing": {
+            "$ref": "#/components/schemas/ListingDetailResponse"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "listing",
-          "signing_secret"
+          "signing_secret",
+          "listing"
         ],
         "title": "RotateSigningSecretResponse",
         "description": "Returned by PATCH /v1/listings/{id} when signing_secret rotation occurred."
@@ -4929,30 +5092,67 @@
       },
       "UpdateListingRequest": {
         "properties": {
-          "fulfillment_mode": {
+          "name": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FulfillmentMode"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
               }
             ],
-            "description": "STATIC: listing ships with a pre-baked deliverable, delivered at order.paid. ASYNC: agent delivers via POST /v1/orders/{id}/fulfill after paid.",
+            "title": "Name",
+            "description": "Updated product name. Omit to leave unchanged.",
             "examples": [
-              "async"
+              "SEO Playbook 2026 \u2014 Revised Edition"
+            ]
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 50.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price",
+            "description": "Updated price in cents. Minimum 50 (= $0.50). Omit to leave unchanged.",
+            "examples": [
+              2900,
+              9999
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 3,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency",
+            "description": "Updated three-letter ISO 4217 currency code (lowercase). Omit to leave unchanged.",
+            "examples": [
+              "usd",
+              "eur"
             ]
           },
           "deliverable": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Deliverable"
+                "$ref": "#/components/schemas/DeliverableRequest"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "For STATIC listings, the content to deliver. Agent-supplied URL or Markdown text."
+            "description": "Replace the listing's deliverable. Pass null to remove it (switches listing to ASYNC fulfillment mode). Omit the field entirely to leave the current deliverable unchanged."
           },
           "agent_callback_url": {
             "anyOf": [
@@ -4965,39 +5165,26 @@
               }
             ],
             "title": "Agent Callback Url",
-            "description": "Per-listing webhook URL. Receives order.paid, order.fulfilled, order.refunded, order.disputed events signed with the listing's signing_secret (HMAC-SHA256). Leave null to rely on polling /v1/orders or /v1/events instead."
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name",
-            "description": "Product name",
+            "description": "Updated per-listing webhook URL. Pass null to clear it. Must use https:// (or http://localhost for local dev). Omit to leave unchanged.",
             "examples": [
-              "SEO Playbook 2026"
+              "https://my-agent.example.com/fulfill"
             ]
           },
-          "price": {
+          "signing_secret": {
             "anyOf": [
               {
-                "type": "integer",
-                "exclusiveMinimum": 0.0
+                "type": "string",
+                "maxLength": 256,
+                "minLength": 16
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Price",
-            "description": "Price in cents (smallest currency unit). Examples: $5 = 500, $29 = 2900, $99.99 = 9999.",
+            "title": "Signing Secret",
+            "description": "Rotate the signing secret. Pass a new value to set it, or null to auto-generate a new one. The new secret is returned once in the response (object becomes `listing_with_secret`). Omit to leave the current secret unchanged. Min 16 chars, max 256 chars.",
             "examples": [
-              500,
-              2900,
-              9999
+              "my-new-signing-secret-value"
             ]
           },
           "checkout_schema": {
@@ -5006,43 +5193,30 @@
                 "items": {
                   "$ref": "#/components/schemas/CheckoutFieldInput"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 5
               },
               {
                 "type": "null"
               }
             ],
             "title": "Checkout Schema",
-            "description": "Custom fields to collect from the buyer at checkout. Replaces existing schema.",
-            "examples": [
-              [
-                {
-                  "key": "size",
-                  "label": "Size",
-                  "options": [
-                    "S",
-                    "M",
-                    "L"
-                  ],
-                  "type": "select"
-                }
-              ]
-            ]
+            "description": "Replace the entire checkout schema (full replace, not merge). Pass an empty array to clear all custom fields. Omit to leave the current schema unchanged. Max 5 fields. Email is always collected."
           },
-          "description": {
+          "image_url": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 5000
+                "maxLength": 2048
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Description",
-            "description": "Product description shown on the product page. Improves buyer conversion. Plain text, max 5000 chars.",
+            "title": "Image Url",
+            "description": "Updated cover image URL. Must use https://. Pass null to remove. Omit to leave unchanged.",
             "examples": [
-              "A comprehensive guide to modern SEO."
+              "https://cdn.example.com/covers/updated.jpg"
             ]
           },
           "tagline": {
@@ -5056,10 +5230,23 @@
               }
             ],
             "title": "Tagline",
-            "description": "Short tagline shown below the product name on the product page. Max 140 chars.",
+            "description": "Updated tagline. Pass null to clear. Omit to leave unchanged. Max 140 chars.",
             "examples": [
-              "Updated for 2026"
+              "Now updated for 2026 algorithm changes"
             ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Updated product description. Pass null to clear. Omit to leave unchanged. Max 5000 chars."
           },
           "highlights": {
             "anyOf": [
@@ -5067,20 +5254,38 @@
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
               }
             ],
             "title": "Highlights",
-            "description": "Bullet-point features shown as badges on the product page. Max 10 items. Each should be short (2-4 words).",
+            "description": "Replace all highlight bullets. Pass an empty array to clear. Omit to leave unchanged.",
             "examples": [
               [
-                "50+ pages",
+                "60+ pages",
+                "Actionable tips",
                 "Free updates"
               ]
             ]
+          },
+          "faqs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FaqItemInput"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faqs",
+            "description": "Replace the entire FAQ list. Pass an empty array to clear. Omit to leave unchanged."
           },
           "cta": {
             "anyOf": [
@@ -5093,122 +5298,24 @@
               }
             ],
             "title": "Cta",
-            "description": "Buy button text on the product page. Defaults to 'Buy Now' if omitted. Max 60 chars.",
+            "description": "Updated buy button text. Pass null to reset to default ('Buy Now'). Omit to leave unchanged.",
             "examples": [
               "Get Instant Access"
-            ]
-          },
-          "cover": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cover",
-            "description": "Cover image CDN key. Shown prominently on the product page. Recommended: 1200x630px.",
-            "examples": [
-              "covers/abc123.jpg"
-            ]
-          },
-          "signing_secret": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Signing Secret",
-            "description": "Rotate the listing signing secret. Pass null to auto-generate a new secret, or a string to set a custom value. Omit entirely to leave the current secret unchanged. The new full value is returned once in this response under `signing_secret`.",
-            "examples": [
-              null,
-              "my-new-secret"
-            ]
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata",
-            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Replaces existing metadata entirely. Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
-            "examples": [
-              {
-                "source": "n8n"
-              }
-            ]
-          },
-          "utm_source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Source",
-            "description": "UTM source tag for Google Analytics",
-            "examples": [
-              "google"
-            ]
-          },
-          "utm_medium": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Medium",
-            "description": "UTM medium tag for Google Analytics",
-            "examples": [
-              "cpc"
-            ]
-          },
-          "utm_campaign": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Utm Campaign",
-            "description": "UTM campaign tag for Google Analytics",
-            "examples": [
-              "spring-sale"
             ]
           },
           "compare_at_price": {
             "anyOf": [
               {
                 "type": "integer",
-                "exclusiveMinimum": 0.0
+                "minimum": 1.0
               },
               {
                 "type": "null"
               }
             ],
             "title": "Compare At Price",
-            "description": "Strikethrough price in cents (smallest currency unit). Must be greater than price. Examples: $39 = 3900.",
+            "description": "Updated strikethrough price in cents. Must be greater than price when both are set. Pass null to remove the strikethrough. Omit to leave unchanged.",
             "examples": [
-              3900,
               4900
             ]
           },
@@ -5218,32 +5325,20 @@
                 "items": {
                   "type": "string"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
               }
             ],
             "title": "Badges",
-            "description": "Short promotional badges shown on the product page (e.g. 'Best seller', 'Limited time'). Max 10 items.",
+            "description": "Replace all badges. Pass an empty array to clear. Omit to leave unchanged.",
             "examples": [
               [
+                "Updated",
                 "Best seller"
               ]
-            ]
-          },
-          "cover_blur": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/BlurMode"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
-            "examples": [
-              "auto"
             ]
           },
           "rating": {
@@ -5256,9 +5351,9 @@
               }
             ],
             "title": "Rating",
-            "description": "Seller-provided aggregate star rating (1-5). Shown on the product page. Values outside range clamped.",
+            "description": "Updated aggregate star rating (1.0\u20135.0). Pass null to remove. Omit to leave unchanged.",
             "examples": [
-              4.8
+              4.9
             ]
           },
           "rating_count": {
@@ -5272,9 +5367,9 @@
               }
             ],
             "title": "Rating Count",
-            "description": "Seller-provided review or purchase count shown alongside the rating on the product page.",
+            "description": "Updated review/purchase count shown alongside the rating. Pass null to remove. Omit to leave unchanged.",
             "examples": [
-              1243
+              1500
             ]
           },
           "reviews": {
@@ -5283,34 +5378,40 @@
                 "items": {
                   "$ref": "#/components/schemas/ReviewInput"
                 },
-                "type": "array"
+                "type": "array",
+                "maxItems": 10
               },
               {
                 "type": "null"
               }
             ],
             "title": "Reviews",
-            "description": "Featured review cards shown on the product page. Seller-provided, not buyer-submitted. Max 10."
+            "description": "Replace all featured review cards. Pass an empty array to clear. Omit to leave unchanged."
           },
-          "faqs": {
+          "metadata": {
             "anyOf": [
               {
-                "items": {
-                  "$ref": "#/components/schemas/FaqItemInput"
-                },
-                "type": "array"
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Faqs",
-            "description": "FAQ accordion shown on the product page. Answers common buyer questions. Max 10 items."
+            "title": "Metadata",
+            "description": "Replace metadata key-value pairs (full replace, not merge). Pass null to clear all metadata. Omit to leave unchanged. Limits: max 50 keys, keys \u2264 40 chars, values \u2264 10000 chars, total \u2264 50000 bytes.",
+            "examples": [
+              {
+                "campaign": "spring-sale",
+                "source": "n8n"
+              }
+            ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "UpdateListingRequest",
-        "description": "Partial update \u2014 only provided fields are changed."
+        "description": "PUT /v1/listings/{id} request body. Partial update \u2014 only provided fields change."
       },
       "ValidationError": {
         "properties": {

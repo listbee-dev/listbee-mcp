@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-18T10:53:01.602Z
-// sha256: 73d8e71b9e861535cb0c32ef468fc15b8e70d1096d6a2117e886a7520582797f
+// generated_at: 2026-04-18T18:35:55.840Z
+// sha256: 5e7f97a3d2ee21260808a3430003f1312c8f5d7602aee48d6ba3de4600840c1c
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -73,7 +73,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "create_listing",
     method: "POST",
     path: "/v1/listings",
-    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields. Fulfillment mode is determined automatically: set deliverable for managed auto-delivery (STATIC), or set agent_callback_url for async agent-driven fulfillment (ASYNC). No content_type field needed. signing_secret is optional — auto-generated if omitted (use it to verify callback payloads from this listing). metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars — Stripe-aligned limits).",
+    description: "Create a live, buyable listing in one call. Returns the checkout URL and a one-time signing_secret that you must store (subsequent reads don't expose it). The agent supplies deliverable for instant delivery (STATIC — ListBee sends the URL/text at order.paid), or leaves it null for agent-driven fulfillment (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or leave empty and fulfill externally). fulfillment_mode is computed automatically from deliverable presence; do not send it. Only name and price are required; provide rich description/tagline/highlights/faqs for better conversion.",
     annotations: {
       destructiveHint: false,
       readOnlyHint: false,
@@ -134,7 +134,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "get_listing",
     method: "GET",
     path: "/v1/listings/{listing_id}",
-    description: "Get a listing's full state including readiness. This is the readiness inspection tool — call it after every change to check what's needed. readiness.sellable is true when the listing can accept purchases. If false, readiness.actions tells you what's missing and how to fix each item.",
+    description: "Get a listing's full state including readiness. This is the readiness inspection tool — call it after every change to check what's needed. readiness.buyable is true when the listing can accept purchases. If false, readiness.actions tells you what's missing and how to fix each item.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -156,7 +156,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "list_listings",
     method: "GET",
     path: "/v1/listings",
-    description: "List all listings for the authenticated account. Filter by status. Cursor-paginated. Returns lightweight summaries — use GET /v1/listings/{listing_id} for full detail including deliverables, readiness, reviews, and checkout schema.",
+    description: "List all listings for the authenticated account. Returns lightweight summaries — call GET /v1/listings/{listing_id} for full detail (readiness, stats, deliverable, checkout schema). Cursor-paginated: pass `cursor` from the previous response to fetch the next page. Filter by `status` to find only published, draft, or archived listings.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -232,7 +232,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_listing",
     method: "PUT",
     path: "/v1/listings/{listing_id}",
-    description: "Update listing fields. Returns updated listing with readiness. To rotate the signing secret, include `signing_secret` in the request body: set to `null` to auto-generate a new secret, or provide a custom string. When rotation occurs, the response object is `listing_with_secret` and includes the full new `signing_secret` once.",
+    description: "Partial update — only fields present in the request body are changed. Omitted fields are left as-is. Pass null explicitly to clear a nullable field. Unknown fields return 422 (strict schema). Updates to published listings take effect immediately. To rotate the signing secret, include `signing_secret` in the body (pass null to auto-generate, or a string to set a specific value) — the response object switches to `listing_with_secret` and the new secret is returned once.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,

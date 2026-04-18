@@ -92,37 +92,46 @@ tools:
     annotations:
       readOnlyHint: false
       destructiveHint: false
-    when_to_use: "Use when the user wants to sell something new."
+    when_to_use: >
+      Use when the user wants to start selling a product in one shot. The listing is
+      created live (status: published) immediately — no draft step, no separate
+      publish call. Works for digital goods (pass a deliverable), agent-fulfilled
+      flows (leave deliverable null + provide agent_callback_url), or physical/service
+      goods (external fulfillment, same null-deliverable shape).
     description: >
-      Create a new listing for sale. Returns a checkout URL and readiness status.
-      Only name and price are required — but listings with rich content convert
-      significantly better. Fill in as many fields as you can: description, tagline,
-      highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling
-      copy. The product page buyers see is built entirely from these fields.
-      Fulfillment mode is determined automatically: set deliverable for managed
-      auto-delivery (STATIC), or set agent_callback_url for async agent-driven
-      fulfillment (ASYNC). No content_type field needed.
-      signing_secret is optional — auto-generated if omitted (use it to verify
-      callback payloads from this listing). metadata accepts a free-form dict
-      (max 50 keys; key ≤ 40 chars, value ≤ 500 chars — Stripe-aligned limits).
+      Create a live, buyable listing in one call. Returns the checkout URL and a
+      one-time signing_secret that you must store (subsequent reads don't expose it).
+      The agent supplies deliverable for instant delivery (STATIC — ListBee sends
+      the URL/text at order.paid), or leaves it null for agent-driven fulfillment
+      (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or leave
+      empty and fulfill externally). fulfillment_mode is computed automatically
+      from deliverable presence; do not send it. Only name and price are required;
+      provide rich description/tagline/highlights/faqs for better conversion.
     hints:
-      - "Always check readiness.sellable in the response"
-      - "readiness.next tells you the highest-priority action to take"
-      - "Only name + price are required, but fill in description, tagline, highlights, badges, reviews, faqs, cta for better conversions"
-      - "Write compelling, benefit-focused copy — this IS the product page buyers see"
-      - "checkout_schema and metadata are the only fields that don't appear on the product page"
-      - "signing_secret is auto-generated if omitted — retrieve it from get_listing if needed later"
-      - "metadata keys/values must stay within Stripe-aligned limits: 50 keys max, key ≤ 40 chars, value ≤ 500 chars"
+      - "signing_secret is returned ONCE at creation — store it immediately. It's the HMAC key for webhook verification."
+      - "Stateless agents: pass your own signing_secret (≥16 chars) in the request so you never need to persist ListBee's generated value."
+      - "metadata is your stateless context scratchpad. Up to 50 KB (50 keys × 10,000 chars per value). Flows back in the order.paid webhook; NOT forwarded to Stripe."
+      - "url is a composite /l/{id}/{slug} — safe to share. The slug is derived from name; if name changes later, old slug URLs still work."
+      - "image_url must be agent-hosted https://. ListBee does not fetch, cache, or validate images."
+      - "Check readiness.buyable before sharing the URL with buyers. If false, readiness.actions[0] (or readiness.next) tells you how to resolve. kind: human means a human must act (Stripe Connect); kind: api means an agent can resolve it."
+      - "checkout_schema max 5 fields (email is always auto-collected alongside). Keep it tight — every field costs conversion."
+      - "Pass deliverable for STATIC delivery (ListBee sends at paid). Leave null for ASYNC (agent fulfills via POST /v1/orders/{order_id}/fulfill)."
     input_example:
       name: "50 Cold Outreach Templates"
       price: 1900
+      currency: "usd"
       tagline: "Battle-tested templates that book meetings"
       description: "50 proven cold outreach templates used by 500+ SDRs. Each template includes subject line, body, and follow-up sequence. Average 45% open rate."
+      image_url: "https://my-cdn.example.com/covers/cold-outreach.jpg"
       highlights:
         - "50 ready-to-send templates"
         - "45% average open rate"
         - "Follow-up sequences included"
       cta: "Get the Templates"
+      metadata:
+        source: "n8n"
+        campaign: "launch-week"
+        context: "SDR audience — cold outreach templates bundle v3"
 
   - type: operation
     operation_id: get_listing
@@ -138,11 +147,11 @@ tools:
     description: >
       Get a listing's full state including readiness. This is the readiness
       inspection tool — call it after every change to check what's needed.
-      readiness.sellable is true when the listing can accept purchases.
+      readiness.buyable is true when the listing can accept purchases.
       If false, readiness.actions tells you what's missing and how to fix each item.
     hints:
       - "This is how you check readiness — call it after every create/update"
-      - "readiness.sellable tells you if the listing is live"
+      - "readiness.buyable tells you if the listing is live"
       - "readiness.actions lists what's missing, with kind (api/human) and resolve details"
       - "readiness.next points to the highest-priority action"
 
@@ -193,7 +202,7 @@ tools:
       The buy button activates once Stripe is connected.
     hints:
       - "Product page goes live immediately — CTA disabled until Stripe connected"
-      - "Check readiness.sellable after publish to see if payments work"
+      - "Check readiness.buyable after publish to see if payments work"
 
   - type: operation
     operation_id: delete_listing

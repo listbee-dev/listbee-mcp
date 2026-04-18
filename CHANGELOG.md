@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Regenerated schemas for listings rebaseline: `image_url` and `currency` fields added, `DeliverableRequest`/`DeliverableResponse` replaces `Deliverable`, `content` replaces `value` in `DeliverableInputRequest`, `buyable` replaces `sellable` on `ListingReadiness`, listing URLs use composite `/l/{id}/{slug?}` shape.
+- `create_listing` manifest rewritten: new `when_to_use`, hints, description, and `input_example` (includes `currency`, `image_url`, `metadata` example).
+- `get_listing` and `publish_listing` manifest entries updated: descriptions and hints now reference `readiness.buyable` instead of `readiness.sellable`.
+- `ProblemDetail` now includes an `errors` array for per-field validation errors.
+- Server instructions updated: `readiness.sellable` → `readiness.buyable`.
+
+### Removed
+- `BlurMode`, `DeliverableStatus` types (no longer in API).
+- `short_code`, `has_cover`, `cover_blur`, `cover`, `utm_source`, `utm_medium`, `utm_campaign`, `fulfillment_mode` fields from `create_listing` and `update_listing` schemas.
+- `CreateListingResponse`, `ListingResponse`, `Deliverable` schema aliases (replaced by `ListingCreateResponse`, `ListingDetailResponse`, `DeliverableRequest`).
+
 ## [0.15.0] - 2026-04-18
 
 ### Added
