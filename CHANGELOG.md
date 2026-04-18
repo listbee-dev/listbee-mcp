@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `bootstrap_poll` tool — poll Stripe onboarding readiness after account creation; requires the API key issued by `bootstrap_verify`
+- `api_key_self_revoke` tool — self-revoke the calling API key; use when agent detects credential compromise or user requests invalidation
+- `order_redeliver` tool (`redeliver_order` operation) — re-queue `order.paid` / `order.fulfilled` to the listing's `agent_callback_url`; rate-limited 10/hour/order
+- `agent_callback_url` and `signing_secret` fields on `create_listing` and `update_listing` schemas — listing-level webhook for async agent fulfillment
+- `fulfillment_mode` field on listing responses (`STATIC` | `ASYNC` | `EXTERNAL`)
+- `deliverable` field on `create_listing` and `update_listing` (single deliverable object, replaces `deliverables` array)
+- `metadata` field on `fulfill_order` — free-form dict (max 50 keys) for correlating agent work
+- `unlock_url` field on order response schemas
+- `events_callback_url` field on `update_account` input schema
+- New `bootstrap_verify` parameters: `bootstrap_token` + `otp_code` (replaces `session` + `code`)
+- New `bootstrap_start` path: `POST /v1/bootstrap/start` (was `/v1/bootstrap`)
+
+### Removed
+- `customer_*` tools: `list_customers`, `get_customer` — Customer entity deleted from API
+- `webhook_*` tools: `list_webhooks`, `create_webhook`, `update_webhook`, `delete_webhook`, `list_webhook_events`, `retry_webhook_event`, `test_webhook` — Webhook entity deleted
+- `file_*` tools: `upload_file` — file hosting removed; use `deliverable` field directly
+- `set_deliverables` / `remove_deliverables` tools — replaced by single `deliverable` field on listing create/update
+- `bootstrap_complete` tool — 3-step flow collapsed to 2 steps; `bootstrap_verify` now issues the API key directly
+- `create_api_key` tool — API key creation is console-only; only `api_key_self_revoke` is agent-facing
+- `fulfillment_url` field from listing schemas (replaced by `agent_callback_url`)
+- `stock` field from listing schemas (removed from API)
+- `has_deliverables` field from listing and order schemas
+- `deliverables` array field from listing and order schemas (replaced by single `deliverable`)
+- `stats` field from account response schema
+
+### Changed
+- `bootstrap_verify` now takes `bootstrap_token` + `otp_code` (was `session` + `code`) and returns the API key directly — no more `bootstrap_complete` step
+- `fulfill_order` now takes a single `deliverable` object (not `deliverables` array); accepts optional `metadata`
+- Listing status set simplified: `draft | published | archived` (removed `paused`)
+- Order status set simplified: `pending | paid | fulfilled` (removed intermediate states)
+- Startup validation updated — bootstrap tools (start, verify, poll) all handled correctly without SDK client requirement
+- `listbee` SDK dependency updated to `^0.19.0` (new `apiKeys`, `orders.redeliver`, updated bootstrap flow)
+- Tool count: 28 → 20
+
 ## [0.14.0] - 2026-04-17
 
 ### Added

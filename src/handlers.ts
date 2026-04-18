@@ -10,18 +10,13 @@ export const handlers: Record<string, Handler> = {
   update_listing:      (c, a) => { const { listing_id, ...p } = a; return c.listings.update(listing_id as string, p as any); },
   delete_listing:      (c, a) => c.listings.delete(a.listing_id as string),
   publish_listing:     (c, a) => c.listings.publish(a.listing_id as string),
-  set_deliverables:    (c, a) => c.listings.setDeliverables(a.listing_id as string, a as any),
-  remove_deliverables: (c, a) => c.listings.removeDeliverables(a.listing_id as string),
 
   // Orders
   list_orders:         (c, a) => c.orders.list(a as any),
   get_order:           (c, a) => c.orders.get(a.order_id as string),
   fulfill_order:       (c, a) => { const { order_id, ...p } = a; return c.orders.fulfill(order_id as string, p as any); },
   refund_order:        (c, a) => c.orders.refund(a.order_id as string),
-
-  // Customers
-  list_customers:      (c, a) => c.customers.list(a as any),
-  get_customer:        (c, a) => c.customers.get(a.customer_id as string),
+  order_redeliver:     (c, a) => c.orders.redeliver(a.order_id as string),
 
   // Account
   get_account:         (c) => c.account.get(),
@@ -31,12 +26,6 @@ export const handlers: Record<string, Handler> = {
   // Stripe
   disconnect_stripe:   (c) => c.stripe.disconnect(),
 
-  // Webhooks
-  list_webhooks:       (c) => c.webhooks.list(),
-  create_webhook:      (c, a) => c.webhooks.create(a as any),
-  update_webhook:      (c, a) => { const { webhook_id, ...p } = a; return c.webhooks.update(webhook_id as string, p as any); },
-  delete_webhook:      (c, a) => c.webhooks.delete(a.webhook_id as string),
-  list_webhook_events: (c, a) => { const { webhook_id, ...p } = a; return c.webhooks.listEvents(webhook_id as string, p as any); },
-  retry_webhook_event: (c, a) => c.webhooks.retryEvent(a.webhook_id as string, a.event_id as string),
-  test_webhook:        (c, a) => c.webhooks.test(a.webhook_id as string),
+  // API Keys
+  api_key_self_revoke: (c) => c.apiKeys.selfRevoke(),
 };

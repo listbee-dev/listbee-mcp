@@ -1,4 +1,4 @@
-version: 1
+version: 2
 
 # Priority scale:
 #   10    = golden-path / core workflow
@@ -12,7 +12,7 @@ tools:
     operation_id: bootstrap_start
     name: bootstrap_start
     category: bootstrap
-    priority: 10
+    priority: 9
     status: active
     requires_human: true
     annotations:
@@ -21,23 +21,22 @@ tools:
       idempotentHint: false
       openWorldHint: false
     when_to_use: >
-      Use when the agent needs to create a new ListBee account.
-      Step 1 of 3. No API key required.
+      Kicking off a new seller account. The human will receive a 6-digit OTP
+      by email; bring the code back and call bootstrap_verify.
     description: >
-      Sends a one-time passcode to the provided email address.
-      Returns a session ID for step 2 (bootstrap_verify).
-      Human must check their email for the 6-digit code.
-      Flow: bootstrap_start → bootstrap_verify → bootstrap_complete.
+      Step 1 of 2. Emails an OTP and returns a single-use bootstrap_token
+      plus the account_id. Token TTL 10 min.
+      Flow: bootstrap_start → bootstrap_verify. No API key required.
     hints:
       - "Human interaction required: ask for their email, then tell them to check inbox"
-      - "Session expires in 10 minutes"
+      - "bootstrap_token expires in 10 minutes — call bootstrap_verify promptly"
       - "Disposable email domains are blocked"
 
   - type: operation
     operation_id: bootstrap_verify
     name: bootstrap_verify
     category: bootstrap
-    priority: 10
+    priority: 9
     status: active
     requires_human: true
     annotations:
@@ -46,38 +45,42 @@ tools:
       idempotentHint: false
       openWorldHint: false
     when_to_use: >
-      Use after bootstrap_start to verify the OTP code.
-      Step 2 of 3. Human must provide the 6-digit code.
+      The human pasted the OTP. Call this once with bootstrap_token + otp_code
+      to mint the API key.
     description: >
-      Verifies the OTP. On success, creates an account if new email.
-      Returns session ID for step 3 (bootstrap_complete).
+      Step 2 of 2. Verifies the OTP, issues the first API key (shown once —
+      store immediately), and returns Stripe onboarding URL. Hand the Stripe
+      URL to the human; poll bootstrap_poll until ready.
     hints:
-      - "Human provides the 6-digit code from their email"
-      - "After 5 failed attempts, the OTP is invalidated"
+      - "Store the api_key IMMEDIATELY — it is shown once and cannot be recovered"
+      - "After receiving the key, restart this MCP session with the key to unlock all tools"
+      - "After 5 failed OTP attempts the bootstrap_token is invalidated — call bootstrap_start again"
+      - "Hand the stripe_onboarding_url to the human; poll bootstrap_poll every 30s until ready=true"
 
   - type: operation
-    operation_id: bootstrap_complete
-    name: bootstrap_complete
+    operation_id: bootstrap_poll
+    name: bootstrap_poll
     category: bootstrap
-    priority: 10
+    priority: 7
     status: active
     requires_human: false
     annotations:
-      readOnlyHint: false
+      readOnlyHint: true
       destructiveHint: false
       idempotentHint: true
       openWorldHint: false
     when_to_use: >
-      Use after bootstrap_verify to get the API key.
-      Step 3 of 3. No human interaction needed.
+      Between API-key issuance and first sale — checking if the seller finished
+      Stripe Connect onboarding.
     description: >
-      Generates an API key on the verified session. Idempotent — calling again
-      with the same session within 10 minutes returns the same key.
-      Store the key immediately. Use as Authorization: Bearer lb_...
+      Polling endpoint. Returns ready=true once charges_enabled; actions[]
+      surfaces what's still blocking. Poll every 30 seconds after handing the
+      Stripe onboarding URL to the human. Give up after 15 minutes.
     hints:
-      - "Store the api_key IMMEDIATELY — it is a secret"
-      - "If context drops, retry with the same session within 10 minutes"
-      - "After receiving the key, restart this MCP session with the key to unlock all tools"
+      - "Poll every 30s after sharing the Stripe onboarding URL"
+      - "ready=true means the account can accept payments"
+      - "actions[] lists what's still blocking with kind (api/human) and resolve details"
+      - "Typical Stripe onboarding: 2-5 minutes. Give up after 15 minutes."
 
   # --- Listings ---
   - type: operation
@@ -96,14 +99,20 @@ tools:
       significantly better. Fill in as many fields as you can: description, tagline,
       highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling
       copy. The product page buyers see is built entirely from these fields.
-      Fulfillment is implicit: attach deliverables for auto-delivery, set fulfillment_url
-      for agent callback, or handle via webhooks. No content_type field needed.
+      Fulfillment mode is determined automatically: set deliverable for managed
+      auto-delivery (STATIC), or set agent_callback_url for async agent-driven
+      fulfillment (ASYNC). No content_type field needed.
+      signing_secret is optional — auto-generated if omitted (use it to verify
+      callback payloads from this listing). metadata accepts a free-form dict
+      (max 50 keys; key ≤ 40 chars, value ≤ 500 chars — Stripe-aligned limits).
     hints:
       - "Always check readiness.sellable in the response"
       - "readiness.next tells you the highest-priority action to take"
       - "Only name + price are required, but fill in description, tagline, highlights, badges, reviews, faqs, cta for better conversions"
       - "Write compelling, benefit-focused copy — this IS the product page buyers see"
       - "checkout_schema and metadata are the only fields that don't appear on the product page"
+      - "signing_secret is auto-generated if omitted — retrieve it from get_listing if needed later"
+      - "metadata keys/values must stay within Stripe-aligned limits: 50 keys max, key ≤ 40 chars, value ≤ 500 chars"
     input_example:
       name: "50 Cold Outreach Templates"
       price: 1900
@@ -125,7 +134,7 @@ tools:
       readOnlyHint: true
       destructiveHint: false
       idempotentHint: true
-    when_to_use: "Use after any mutation (create, update, set_deliverables) to inspect readiness and determine what to do next."
+    when_to_use: "Use after any mutation (create, update) to inspect readiness and determine what to do next."
     description: >
       Get a listing's full state including readiness. This is the readiness
       inspection tool — call it after every change to check what's needed.
@@ -148,6 +157,10 @@ tools:
       destructiveHint: false
       idempotentHint: true
     when_to_use: "Use when changing title, price, or other listing details."
+    hints:
+      - "signing_secret can be rotated by passing a new value — omit to leave unchanged"
+      - "metadata is a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars)"
+      - "Pass null for a metadata key to remove it; omit metadata entirely to leave unchanged"
     input_example:
       name: "100 Cold Outreach Templates (Updated)"
       price: 2900
@@ -183,47 +196,6 @@ tools:
       - "Check readiness.sellable after publish to see if payments work"
 
   - type: operation
-    operation_id: set_deliverables
-    name: set_deliverables
-    category: listings
-    priority: 9
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "Use after creating a listing to attach digital content for automatic delivery."
-    description: >
-      Set digital deliverables (files, URLs, or text) on a listing.
-      Listings with deliverables auto-deliver to buyers on purchase.
-    input_example:
-      deliverables:
-        - type: "url"
-          value: "https://example.com/templates.zip"
-          label: "Download link"
-
-  - type: operation
-    operation_id: remove_deliverables
-    name: remove_deliverables
-    category: listings
-    priority: 3
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: true
-    when_to_use: >
-      Use when switching a listing from managed delivery to external fulfillment
-      (webhook or agent callback). SAFETY: This is irreversible — always call
-      get_listing first to inspect current state, warn the user that buyers will
-      no longer receive auto-delivery, and wait for explicit user confirmation
-      before calling. After removing, set up a webhook (create_webhook with event
-      order.paid) to ensure order notifications are received.
-    description: >
-      Remove all deliverables from a listing. This is irreversible — the files
-      and delivery configuration cannot be recovered. The listing switches to
-      external fulfillment (webhook or agent callback).
-
-  - type: operation
     operation_id: delete_listing
     name: delete_listing
     category: listings
@@ -236,23 +208,6 @@ tools:
     description: >
       Permanently delete a listing. This is irreversible — the listing, its
       checkout URL, and all associated data cannot be recovered.
-
-  # --- Files ---
-  - type: operation
-    operation_id: upload_file
-    name: upload_file
-    category: files
-    priority: 8
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      openWorldHint: true
-    when_to_use: "Use when the user has a file to sell. Upload first, then use the returned token in set_deliverables."
-    description: >
-      Upload a file and receive a token for use in deliverables.
-    hints:
-      - "Returns a file token — pass it to set_deliverables to attach the file to a listing"
 
   # --- Orders ---
   - type: operation
@@ -290,18 +245,23 @@ tools:
       destructiveHint: false
     when_to_use: "Use when you need to deliver digital content to a buyer after purchase, or close out an order as complete."
     description: >
-      Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee —
-      creates an access grant and emails the buyer. Omit deliverables to mark the order as complete
-      without delivering content (for externally fulfilled orders).
+      Mark a paid order as fulfilled by providing the deliverable content (single
+      URL or Markdown text). The deliverable is delivered to the buyer via the
+      unlock page and, if configured, the agent_callback_url webhook payload.
+      Omit deliverable to mark the order as complete without delivering content
+      (for externally fulfilled orders).
+      metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars) —
+      useful for correlating agent work (e.g. job_id, generation_run, delivery_ref).
     hints:
       - "Only works on orders in PAID state"
-      - "Fires order.fulfilled webhook"
-      - "Deliverables are optional — omit for close-out"
+      - "Fires order.fulfilled event to agent_callback_url if configured"
+      - "deliverable is optional — omit for close-out without content delivery"
+      - "metadata persists on the order and is visible in get_order responses"
     input_example:
       order_id: "ord_9xM4kP7nR2qT5wY1"
-      deliverables:
-        - type: "text"
-          value: "Your personalized horoscope reading..."
+      deliverable:
+        type: "text"
+        value: "Your personalized horoscope reading..."
 
   - type: operation
     operation_id: refund_order
@@ -322,47 +282,35 @@ tools:
     hints:
       - "Only works on orders in PAID or FULFILLED status"
       - "Already-refunded orders return 200 with no action (idempotent)"
-      - "Fires order.refunded webhook after Stripe processes the refund"
+      - "Fires order.refunded event after Stripe processes the refund"
     input_example:
       order_id: "ord_9xM4kP7nR2qT5wY1"
 
-  # --- Customers ---
   - type: operation
-    operation_id: list_customers
-    name: list_customers
-    category: customers
-    priority: 7
+    operation_id: redeliver_order
+    name: order_redeliver
+    category: orders
+    priority: 5
     status: active
     annotations:
-      readOnlyHint: true
+      readOnlyHint: false
       destructiveHint: false
-      idempotentHint: true
-    when_to_use: "When the agent needs buyer email addresses for marketing, wants to analyze purchasing patterns, or needs to identify repeat customers."
+      idempotentHint: false
+      openWorldHint: true
+    when_to_use: >
+      When an agent callback URL failed and the agent wants to trigger a retry
+      out-of-band. Also useful after fixing a bug in the agent's callback handler
+      to replay recent orders.
     description: >
-      List all customers (buyers) who have purchased from the seller. Auto-populated
-      from orders — no manual creation needed. Sorted by most recent purchase first.
-      Filter by email for exact match lookup.
-    hints:
-      - "Customers are auto-created on first order — read-only, no create/delete"
-      - "Use email filter to look up a specific buyer"
-      - "total_spent is in cents (smallest currency unit)"
-
-  - type: operation
-    operation_id: get_customer
-    name: get_customer
-    category: customers
-    priority: 6
-    status: active
-    annotations:
-      readOnlyHint: true
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "When the agent needs purchase history details for a specific buyer."
-    description: >
-      Get a customer by ID. Shows total orders, total spent, currency, and purchase dates.
-      Customers represent unique buyer emails that have purchased from the seller.
-    hints:
-      - "Use list_customers with email filter if you have the email but not the ID"
+      Requeue order.paid (and order.fulfilled if applicable) to the listing's
+      agent_callback_url with attempt=1, no initial delay. Rate limited:
+      10/hour/order, 100/hour/api-key. Pass an Idempotency-Key header to dedupe
+      within 24h. Responds 202 with scheduled_attempts count. Zero means the
+      listing has no agent_callback_url — agent should poll /v1/orders or
+      /v1/events instead.
+    hints: >
+      Agents should only call this after confirming their callback handler is
+      healthy — otherwise retries will be consumed.
 
   # --- Account ---
   - type: operation
@@ -422,7 +370,7 @@ tools:
       Permanently delete the account and all associated data. This is irreversible.
     hints:
       - "This is destructive and irreversible — confirm with the user first"
-      - "Before calling, use get_account to retrieve current account state, then surface a warning listing what will be permanently lost: all listings, orders, webhooks, and Stripe connection"
+      - "Before calling, use get_account to retrieve current account state, then surface a warning listing what will be permanently lost: all listings, orders, delivery history, and Stripe connection"
       - "Only call this after the user has acknowledged the irreversibility warning and given explicit confirmation to proceed"
 
   # --- Stripe ---
@@ -465,111 +413,30 @@ tools:
     hints:
       - "This doesn't delete the Stripe account — just disconnects it from ListBee"
 
-  # --- Webhooks ---
+  # --- API Keys ---
   - type: operation
-    operation_id: list_webhooks
-    name: list_webhooks
-    category: webhooks
-    priority: 7
-    status: active
-    annotations:
-      readOnlyHint: true
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "Use to see configured webhooks and their delivery status."
-    description: >
-      List all webhooks for the account. Shows URL, events filter, and enabled status.
-
-  - type: operation
-    operation_id: create_webhook
-    name: create_webhook
-    category: webhooks
-    priority: 8
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-    when_to_use: "Use when the user needs to receive order notifications at a URL."
-    description: >
-      Create a webhook endpoint. Specify the URL and which events to receive.
-      The webhook secret (whsec_ prefixed) is returned for signature verification.
-    hints:
-      - "Recommended for listings without deliverables — ensures you get notified of orders"
-      - "Common events: order.paid, order.fulfilled, order.refunded"
-      - "The secret is only shown once at creation"
-    input_example:
-      url: "https://your-server.com/webhooks"
-      events: ["order.paid", "order.fulfilled"]
-
-  - type: operation
-    operation_id: update_webhook
-    name: update_webhook
-    category: webhooks
-    priority: 5
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      idempotentHint: true
-    when_to_use: "Use to change a webhook's URL, events filter, or enabled status."
-
-  - type: operation
-    operation_id: delete_webhook
-    name: delete_webhook
-    category: webhooks
+    operation_id: api_key_self_revoke
+    name: api_key_self_revoke
+    category: api_keys
     priority: 3
     status: active
+    requires_human: false
     annotations:
       readOnlyHint: false
       destructiveHint: true
-    when_to_use: "Use to remove a webhook endpoint."
-    description: >
-      Permanently delete a webhook endpoint. This is irreversible — the webhook
-      and its delivery history cannot be recovered.
-
-  - type: operation
-    operation_id: list_webhook_events
-    name: list_webhook_events
-    category: webhooks
-    priority: 5
-    status: active
-    annotations:
-      readOnlyHint: true
-      destructiveHint: false
       idempotentHint: true
-    when_to_use: "Use to check webhook delivery history — see which events were sent and whether they succeeded."
+      openWorldHint: false
+    when_to_use: >
+      Destroying the calling API key — use when the agent detects credential
+      compromise or the human asks to invalidate the current key.
     description: >
-      List recent events for a webhook. Shows delivery status, attempts, and errors.
-      Useful for debugging failed deliveries.
-
-  - type: operation
-    operation_id: retry_webhook_event
-    name: retry_webhook_event
-    category: webhooks
-    priority: 4
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      openWorldHint: true
-    when_to_use: "Use when a webhook delivery failed and needs to be retried."
-    description: >
-      Retry delivery of a failed webhook event. Resets attempt counter.
-
-  - type: operation
-    operation_id: test_webhook
-    name: test_webhook
-    category: webhooks
-    priority: 5
-    status: active
-    annotations:
-      readOnlyHint: false
-      destructiveHint: false
-      openWorldHint: true
-    when_to_use: "Use to send a test event to a webhook URL to verify it's working."
-    description: >
-      Send a test event to the webhook URL. Returns the delivery result.
-      Use this to verify webhook configuration before going live.
+      Self-revokes the API key in the Authorization header. Does not list or
+      affect other keys on the account. Idempotent — already-revoked keys
+      return 200. No rate limit.
+    hints:
+      - "This invalidates ONLY the key used to make this call — not other keys on the account"
+      - "After calling this, the current MCP session loses authentication — inform the human"
+      - "To issue a new key, the human must use the console (console.listbee.so)"
 
   # --- Future composite tools (v2+) ---
   # - type: composite

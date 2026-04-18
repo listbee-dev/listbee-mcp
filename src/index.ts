@@ -68,7 +68,7 @@ function resolveConfig(
 
   const apiKey = parsed.apiKey || env.LISTBEE_API_KEY;
   if (!apiKey) {
-    console.error("No API key — bootstrap-only mode. Call bootstrap_complete to get a key.");
+    console.error("No API key — bootstrap-only mode. Call bootstrap_start → bootstrap_verify to get a key.");
   }
   return { transport: "stdio", apiKey, baseUrl, toolFilter };
 }

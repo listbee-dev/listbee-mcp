@@ -3,13 +3,14 @@ import { errorResult } from "../types.js";
 
 async function bootstrapFetch(
   baseUrl: string,
+  method: string,
   path: string,
-  body: Record<string, unknown>,
+  body?: Record<string, unknown>,
 ): Promise<unknown> {
   const res = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    method,
+    headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
   if (!res.ok) {
@@ -26,11 +27,11 @@ export async function handleBootstrapStart(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
   try {
-    const data = await bootstrapFetch(baseUrl, "/v1/bootstrap", { email: args.email });
+    const data = await bootstrapFetch(baseUrl, "POST", "/v1/bootstrap/start", { email: args.email });
     return {
       content: [
         { type: "text", text: JSON.stringify(data, null, 2) },
-        { type: "text", text: "OTP sent. Ask the user to check their email for a 6-digit code, then call bootstrap_verify." },
+        { type: "text", text: "OTP sent. Ask the user to check their email for a 6-digit code, then call bootstrap_verify with the bootstrap_token and otp_code." },
       ],
     };
   } catch (err) { return errorResult(err); }
@@ -41,28 +42,44 @@ export async function handleBootstrapVerify(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
   try {
-    const data = await bootstrapFetch(baseUrl, "/v1/bootstrap/verify", {
-      session: args.session, code: args.code,
+    const data = await bootstrapFetch(baseUrl, "POST", "/v1/bootstrap/verify", {
+      bootstrap_token: args.bootstrap_token,
+      otp_code: args.otp_code,
     });
     return {
       content: [
         { type: "text", text: JSON.stringify(data, null, 2) },
-        { type: "text", text: "Verified. Call bootstrap_complete with the session ID to get the API key." },
+        { type: "text", text: "CRITICAL: Store the api_key IMMEDIATELY — it is shown once and cannot be recovered. Restart this MCP session with the key to unlock all tools. Hand the stripe_onboarding_url to the user; poll bootstrap_poll every 30s until ready=true." },
       ],
     };
   } catch (err) { return errorResult(err); }
 }
 
-export async function handleBootstrapComplete(
+export async function handleBootstrapPoll(
   baseUrl: string,
+  apiKey: string | undefined,
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
   try {
-    const data = await bootstrapFetch(baseUrl, "/v1/bootstrap/complete", { session: args.session });
+    const accountId = args.account_id as string;
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+    const res = await fetch(`${baseUrl}/v1/bootstrap/${accountId}`, {
+      method: "GET",
+      headers,
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw Object.assign(new Error((data as any).detail || `HTTP ${res.status}`), {
+        status: res.status,
+        response: data,
+      });
+    }
     return {
       content: [
         { type: "text", text: JSON.stringify(data, null, 2) },
-        { type: "text", text: "CRITICAL: Store the api_key immediately. Restart this MCP session with the key to unlock all tools." },
       ],
     };
   } catch (err) { return errorResult(err); }

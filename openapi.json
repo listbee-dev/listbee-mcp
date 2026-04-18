@@ -54,7 +54,7 @@
           "Account"
         ],
         "summary": "Update account",
-        "description": "Update account settings: ga_measurement_id (Google Analytics tracking on checkout pages) and notify_orders (email notifications for new orders). Returns the updated account with readiness \u2014 check readiness.operational to verify the account can accept payments.",
+        "description": "Update account settings: ga_measurement_id (Google Analytics tracking on checkout pages), notify_orders (email notifications for new orders), and events_callback_url (optional account-level webhook). Returns the updated account with readiness \u2014 check readiness.operational to verify the account can accept payments.",
         "operationId": "update_account",
         "requestBody": {
           "content": {
@@ -133,289 +133,27 @@
         ]
       }
     },
-    "/v1/customers": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "summary": "List customers",
-        "description": "List customers (buyers) for the authenticated account. Customers are auto-created when a buyer completes their first order. Use this endpoint to get buyer email addresses for marketing, analyze purchasing patterns, or identify repeat customers. Sorted by most recent purchase first.",
-        "operationId": "list_customers",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "email",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by exact buyer email address.",
-              "examples": [
-                "alice@example.com"
-              ],
-              "title": "Email"
-            },
-            "description": "Filter by exact buyer email address."
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Only customers created after this ISO 8601 datetime.",
-              "examples": [
-                "2026-03-01T00:00:00Z"
-              ],
-              "title": "Created After"
-            },
-            "description": "Only customers created after this ISO 8601 datetime."
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Only customers created before this ISO 8601 datetime.",
-              "examples": [
-                "2026-03-31T23:59:59Z"
-              ],
-              "title": "Created Before"
-            },
-            "description": "Only customers created before this ISO 8601 datetime."
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Pagination cursor from a previous response.",
-              "title": "Cursor"
-            },
-            "description": "Pagination cursor from a previous response."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Maximum number of customers to return.",
-              "examples": [
-                20
-              ],
-              "default": 20,
-              "title": "Limit"
-            },
-            "description": "Maximum number of customers to return."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CustomerListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/customers/{customer_id}": {
-      "get": {
-        "tags": [
-          "Customers"
-        ],
-        "summary": "Get customer",
-        "description": "Get a single customer by ID. Customers are auto-created from order data \u2014 they represent unique buyer email addresses that have purchased from the seller. Use the customer's email to filter orders via GET /v1/orders?buyer_email=... for purchase history.",
-        "operationId": "get_customer",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Customer ID.",
-              "examples": [
-                "cus_7kQ2xY9mN3pR5tW1vB8a01"
-              ],
-              "title": "Customer Id"
-            },
-            "description": "Customer ID."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CustomerResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Customer not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/files": {
+    "/v1/api-keys/self-revoke": {
       "post": {
         "tags": [
-          "Files"
+          "API Keys"
         ],
-        "summary": "Upload file",
-        "description": "Upload a file and receive a token valid for 24 hours. Use the token in PUT /v1/listings/{id}/deliverables (as a file deliverable), or as 'cover' when creating/updating a listing, or 'avatar' when updating a store. Typical flow: upload_file \u2192 set_deliverables \u2192 publish_listing.\n\n**Per-purpose limits:**\n- `deliverable` \u2014 up to 25 MB; PDF, EPUB, ZIP, images, audio, video, Office documents.\n- `cover` \u2014 up to 5 MB; JPEG, PNG, WebP, or GIF.\n- `avatar` \u2014 up to 2 MB; JPEG, PNG, WebP, or GIF.\n\nMIME type is verified against magic bytes. Mismatches are rejected.",
-        "operationId": "upload_file",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_upload_file"
-              }
-            }
-          },
-          "required": true
-        },
+        "summary": "Self-revoke the calling API key",
+        "description": "Revoke the API key in the Authorization header. Use this when an agent detects a credential compromise and must destroy its own authorization without waiting on a human. No rate limit \u2014 agents must be able to call this freely under attack. Does not touch any other key on the account.",
+        "operationId": "api_key_self_revoke",
         "responses": {
-          "201": {
-            "description": "File uploaded. Token valid for 24 hours.",
+          "202": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FileResponse"
+                  "$ref": "#/components/schemas/ApiKeyResponse"
                 }
               }
             }
           },
           "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "413": {
-            "description": "File exceeds the size limit for the given purpose.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unsupported file type, invalid purpose, or missing file.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
+            "description": "Invalid or already-revoked API key",
             "content": {
               "application/json": {
                 "schema": {
@@ -432,13 +170,160 @@
         ]
       }
     },
+    "/v1/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "List events",
+        "description": "List events delivered to this account. Useful for reconciling missed webhook deliveries or auditing order history. Cursor-paginated, newest first. Events are persisted for every order.paid, order.fulfilled, order.refunded, and order.disputed delivery \u2014 the payload matches what was sent to agent_callback_url.",
+        "operationId": "list_events",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to a single event type (e.g. order.paid).",
+              "examples": [
+                "order.paid"
+              ],
+              "title": "Type"
+            },
+            "description": "Filter to a single event type (e.g. order.paid)."
+          },
+          {
+            "name": "listing_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to events tied to a specific listing.",
+              "examples": [
+                "lst_7kQ2xY9mN3pR5tW1vB8a"
+              ],
+              "title": "Listing Id"
+            },
+            "description": "Filter to events tied to a specific listing."
+          },
+          {
+            "name": "order_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to events tied to a specific order.",
+              "examples": [
+                "ord_9xM4kP7nR2qT5wY1"
+              ],
+              "title": "Order Id"
+            },
+            "description": "Filter to events tied to a specific order."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque pagination cursor from a previous response.",
+              "title": "Cursor"
+            },
+            "description": "Opaque pagination cursor from a previous response."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size, default 50.",
+              "examples": [
+                50
+              ],
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Page size, default 50."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/listings": {
       "post": {
         "tags": [
           "Listings"
         ],
         "summary": "Create listing",
-        "description": "Create a listing to sell digital content. Returns product page URL and readiness. If readiness.sellable is false, follow readiness.actions to resolve. readiness.next is the first action to take. When your account uses a Stripe test key, checkout URLs point to Stripe test mode.",
+        "description": "Create a listing to sell digital content. Returns the listing and a one-time `signing_secret` for webhook verification. Store `signing_secret` immediately \u2014 subsequent reads only expose the last 4 chars via `signing_secret_preview`. If readiness.sellable is false, follow readiness.actions to resolve. readiness.next is the first action to take. When your account uses a Stripe test key, checkout URLs point to Stripe test mode.",
         "operationId": "create_listing",
         "security": [
           {
@@ -457,11 +342,11 @@
         },
         "responses": {
           "201": {
-            "description": "Listing created and published.",
+            "description": "Listing created.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "$ref": "#/components/schemas/CreateListingResponse"
                 }
               }
             }
@@ -679,7 +564,7 @@
           "Listings"
         ],
         "summary": "Update listing",
-        "description": "Update listing fields. Returns updated listing with readiness.",
+        "description": "Update listing fields. Returns updated listing with readiness. To rotate the signing secret, include `signing_secret` in the request body: set to `null` to auto-generate a new secret, or provide a custom string. When rotation occurs, the response object is `listing_with_secret` and includes the full new `signing_secret` once.",
         "operationId": "update_listing",
         "security": [
           {
@@ -718,7 +603,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ListingResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RotateSigningSecretResponse"
+                    }
+                  ],
+                  "title": "Response Update Listing"
                 }
               }
             }
@@ -820,196 +713,14 @@
         }
       }
     },
-    "/v1/listings/{listing_id}/deliverables": {
-      "put": {
-        "tags": [
-          "Listings"
-        ],
-        "summary": "Set deliverables",
-        "description": "Replace all deliverables on a draft listing. Accepts an array of up to 3 deliverables (file, url, text). File tokens must be obtained via POST /v1/files first. Old file deliverables are automatically cleaned up from storage. After setting deliverables, call POST /v1/listings/{listing_id}/publish to make the listing live and buyable.",
-        "operationId": "set_deliverables",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "listing_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Listing ID (lst_ prefixed).",
-              "examples": [
-                "lst_7kQ2xY9mN3pR5tW1vB8a"
-              ],
-              "title": "Listing Id"
-            },
-            "description": "Listing ID (lst_ prefixed)."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetDeliverablesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListingResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Listing not found or not owned by this account.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Listing is not in draft status.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error (too many, invalid token, etc).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      },
+    "/v1/listings/{listing_id}/unpublish": {
       "post": {
         "tags": [
           "Listings"
         ],
-        "summary": "Add deliverable",
-        "description": "Add a single deliverable to a draft listing. Appends to the existing array. Returns the new deliverable with a unique del_ prefixed ID. Max 3 deliverables per listing \u2014 returns 409 if at capacity. When all deliverables are set, call POST /v1/listings/{listing_id}/publish to go live.",
-        "operationId": "add_deliverable",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "listing_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Listing ID (lst_ prefixed).",
-              "examples": [
-                "lst_7kQ2xY9mN3pR5tW1vB8a"
-              ],
-              "title": "Listing Id"
-            },
-            "description": "Listing ID (lst_ prefixed)."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddDeliverableRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeliverableResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Listing not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Listing not in draft, or at max capacity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Listings"
-        ],
-        "summary": "Remove deliverables",
-        "description": "Remove all deliverables from a draft listing. Switches the listing to external fulfillment \u2014 orders will fire order.paid webhooks instead of auto-delivering content. Draft only \u2014 returns 409 if the listing is published. After removing, check readiness via GET /v1/listings/{listing_id}.",
-        "operationId": "remove_deliverables",
+        "summary": "Unpublish a listing",
+        "description": "Transition a PUBLISHED listing back to DRAFT. Buyers can no longer reach the product page. Idempotent \u2014 calling on a DRAFT listing is a no-op. Returns 409 if the listing is ARCHIVED (terminal state).",
+        "operationId": "unpublish_listing",
         "security": [
           {
             "HTTPBearer": []
@@ -1063,7 +774,7 @@
             }
           },
           "409": {
-            "description": "Listing is not in draft state.",
+            "description": "Listing is archived and cannot be unpublished.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1085,14 +796,14 @@
         }
       }
     },
-    "/v1/listings/{listing_id}/deliverables/{deliverable_id}": {
-      "delete": {
+    "/v1/listings/{listing_id}/archive": {
+      "post": {
         "tags": [
           "Listings"
         ],
-        "summary": "Remove deliverable",
-        "description": "Remove a single deliverable by its del_ ID from a draft listing. If the deliverable is a file, the CDN content is cleaned up. Draft only \u2014 returns 409 if the listing is published. After adjusting deliverables, check readiness via GET /v1/listings/{listing_id}.",
-        "operationId": "remove_deliverable",
+        "summary": "Archive a listing (terminal)",
+        "description": "Move a listing to ARCHIVED terminal state. The listing can no longer be published or sold. Idempotent \u2014 calling on an already-archived listing is a no-op. Applies to both DRAFT and PUBLISHED listings.",
+        "operationId": "archive_listing",
         "security": [
           {
             "HTTPBearer": []
@@ -1107,30 +818,23 @@
               "type": "string",
               "description": "Listing ID (lst_ prefixed).",
               "examples": [
-                "lst_7kQ2xY9mN3pR5tW1vB8a"
+                "lst_abc123"
               ],
               "title": "Listing Id"
             },
             "description": "Listing ID (lst_ prefixed)."
-          },
-          {
-            "name": "deliverable_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Deliverable ID (del_ prefixed).",
-              "examples": [
-                "del_7kQ2xY9mN3pR5tW1vB8a"
-              ],
-              "title": "Deliverable Id"
-            },
-            "description": "Deliverable ID (del_ prefixed)."
           }
         ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingResponse"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid or missing API key.",
@@ -1143,17 +847,7 @@
             }
           },
           "404": {
-            "description": "Listing or deliverable not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Listing is not in draft status.",
+            "description": "Listing not found.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1595,6 +1289,82 @@
         }
       }
     },
+    "/v1/orders/{order_id}/redeliver": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Redeliver Order",
+        "description": "Requeue order.paid (and order.fulfilled if applicable) to the listing's agent_callback_url. Uses attempt=1 with no initial delay. Idempotent via Idempotency-Key header. Rate limited: 10/hour/order, 100/hour/api-key. Returns scheduled_attempts=0 if the listing has no agent_callback_url.",
+        "operationId": "redeliver_order",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Order ID (ord_ prefixed).",
+              "examples": [
+                "ord_9xM4kP7nR2qT5wY1"
+              ],
+              "title": "Order Id"
+            },
+            "description": "Order ID (ord_ prefixed)."
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedeliveryAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Redelivery rate limit exceeded."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/orders/{order_id}/fulfill": {
       "post": {
         "tags": [
@@ -1770,653 +1540,31 @@
         ]
       }
     },
-    "/v1/webhooks": {
-      "get": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "List webhooks",
-        "description": "List all webhook endpoints for the authenticated account. Use POST /v1/webhooks to register new endpoints. All order event payloads include the full order snapshot \u2014 no follow-up API calls needed.",
-        "operationId": "list_webhooks",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Pagination cursor from a previous response.",
-              "title": "Cursor"
-            },
-            "description": "Pagination cursor from a previous response."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Maximum number of webhooks to return.",
-              "examples": [
-                20
-              ],
-              "default": 20,
-              "title": "Limit"
-            },
-            "description": "Maximum number of webhooks to return."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Create webhook",
-        "description": "Register a webhook endpoint. Returns the endpoint with its signing secret \u2014 store it, shown once. All order events (order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled) include a full order snapshot in the payload: order_id, listing_id, listing_slug, buyer_email, amount, currency, status, has_deliverables, payment_status, checkout_data, listing_metadata, timestamps, and deliverable info. Agents never need a follow-up API call after receiving a webhook. See the WebhookPayloadExample schema for the full payload shape.",
-        "operationId": "create_webhook",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWebhookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/webhooks/{webhook_id}": {
-      "put": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Update webhook",
-        "description": "Update a webhook endpoint URL, name, or subscribed events. Only provided fields are changed. Use POST /v1/webhooks/{webhook_id}/test to verify the updated endpoint receives events correctly.",
-        "operationId": "update_webhook",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "webhook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook endpoint ID.",
-              "examples": [
-                "wh_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Webhook Id"
-            },
-            "description": "Webhook endpoint ID."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateWebhookRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Webhook not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Delete webhook",
-        "description": "Delete a webhook endpoint. Irreversible. Pending event deliveries for this endpoint are canceled. Order events will no longer be sent to this URL.",
-        "operationId": "delete_webhook",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "webhook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook endpoint ID.",
-              "examples": [
-                "wh_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Webhook Id"
-            },
-            "description": "Webhook endpoint ID."
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Webhook not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/webhooks/{webhook_id}/events": {
-      "get": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "List webhook delivery events",
-        "description": "List delivery event history for a webhook endpoint. Use to debug failed deliveries.",
-        "operationId": "list_webhook_events",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "webhook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook endpoint ID.",
-              "examples": [
-                "wh_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Webhook Id"
-            },
-            "description": "Webhook endpoint ID."
-          },
-          {
-            "name": "delivered",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by delivery status. `true` for delivered, `false` for pending/failed.",
-              "title": "Delivered"
-            },
-            "description": "Filter by delivery status. `true` for delivered, `false` for pending/failed."
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Pagination cursor from a previous response.",
-              "title": "Cursor"
-            },
-            "description": "Pagination cursor from a previous response."
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Maximum number of events to return.",
-              "examples": [
-                20
-              ],
-              "default": 20,
-              "title": "Limit"
-            },
-            "description": "Maximum number of events to return."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookEventListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Webhook not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/webhooks/{webhook_id}/events/{event_id}/retry": {
-      "post": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Retry a webhook event",
-        "description": "Reset a failed webhook event and re-dispatch for immediate delivery. Clears attempts, failed_at, last_error, and delivered_at, then enqueues a new delivery.",
-        "operationId": "retry_webhook_event",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "webhook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook endpoint ID.",
-              "examples": [
-                "wh_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Webhook Id"
-            },
-            "description": "Webhook endpoint ID."
-          },
-          {
-            "name": "event_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook event ID.",
-              "examples": [
-                "evt_7kQ2xY9mN3pR5tW1"
-              ],
-              "title": "Event Id"
-            },
-            "description": "Webhook event ID."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookEventResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Webhook or event not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/webhooks/{webhook_id}/test": {
-      "post": {
-        "tags": [
-          "Webhooks"
-        ],
-        "summary": "Test webhook",
-        "description": "Send a test event to a webhook endpoint and return the delivery result. Does not persist an event record. Use this to verify your endpoint is reachable and correctly processes the payload. The response includes status_code and body from your endpoint.",
-        "operationId": "test_webhook",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "webhook_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Webhook endpoint ID.",
-              "examples": [
-                "wh_3mK8nP2qR5tW7xY1"
-              ],
-              "title": "Webhook Id"
-            },
-            "description": "Webhook endpoint ID."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookTestResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Webhook not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/bootstrap": {
+    "/v1/bootstrap/start": {
       "post": {
         "tags": [
           "Bootstrap"
         ],
         "summary": "Start bootstrap \u2014 send OTP",
-        "description": "Step 1 of 3. Send a one-time passcode to the provided email. Returns a session ID to use in step 2 (POST /v1/bootstrap/verify). Public endpoint \u2014 no API key required. Use this to create a new account programmatically without the developer console.",
+        "description": "Step 1 of 2. Send a one-time passcode to the provided email. Returns a bootstrap_token (single-use, 10-min TTL) and a stable account_id for polling. The account is created immediately \u2014 account_id is stable across retries and polling. Re-calling with the same email reuses the existing account; only the token is rotated. Public endpoint \u2014 no API key required.",
         "operationId": "bootstrap_start",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BootstrapRequest"
+                "$ref": "#/components/schemas/BootstrapStartRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BootstrapResponse"
+                  "$ref": "#/components/schemas/BootstrapStartResponse"
                 }
               }
             }
@@ -2449,8 +1597,8 @@
         "tags": [
           "Bootstrap"
         ],
-        "summary": "Verify OTP \u2014 confirm identity",
-        "description": "Step 2 of 3. Verify the OTP sent in step 1. On success, the session is marked verified and an account is created if this is a new email. Returns the session ID to use in step 3 (POST /v1/bootstrap/complete). Public endpoint \u2014 no API key required.",
+        "summary": "Verify OTP \u2014 get API key",
+        "description": "Step 2 of 2. Verify the OTP sent in step 1. The bootstrap_token is consumed atomically \u2014 cannot be replayed. On success, issues the account's first API key and initiates Stripe Connect onboarding. Returns api_key (store immediately \u2014 shown once), stripe_onboarding_url (hand to human), and readiness (agent guidance on next steps). Poll GET /v1/bootstrap/{account_id} until readiness.operational is true. Public endpoint \u2014 no API key required.",
         "operationId": "bootstrap_verify",
         "requestBody": {
           "content": {
@@ -2474,7 +1622,7 @@
             }
           },
           "400": {
-            "description": "Invalid or expired session / invalid OTP code",
+            "description": "Invalid/expired bootstrap token or invalid OTP code",
             "content": {
               "application/json": {
                 "schema": {
@@ -2506,47 +1654,38 @@
         }
       }
     },
-    "/v1/bootstrap/complete": {
-      "post": {
+    "/v1/bootstrap/{account_id}": {
+      "get": {
         "tags": [
           "Bootstrap"
         ],
-        "summary": "Complete bootstrap \u2014 get API key",
-        "description": "Step 3 of 3. Complete bootstrap on a verified session. Returns the account ID and a one-time API key \u2014 store it immediately, it will not be shown again. Idempotent within a short re-reveal window: calling again with the same session returns the same key. Use the API key as `Authorization: Bearer lb_...` for all subsequent API calls. Public endpoint \u2014 no API key required.",
-        "operationId": "bootstrap_complete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BootstrapCompleteRequest"
-              }
+        "summary": "Poll bootstrap status",
+        "description": "Poll the account's readiness after bootstrap. Call repeatedly (e.g. every 5s) after handing stripe_onboarding_url to the human. ready becomes true once Stripe Connect onboarding completes and charges are enabled. When ready is true, the account can accept payments. readiness.actions lists remaining steps and readiness.next points to the highest-priority one. Public endpoint \u2014 no API key required.",
+        "operationId": "bootstrap_poll",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BootstrapCompleteResponse"
+                  "$ref": "#/components/schemas/BootstrapPollResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Session not verified or expired",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server misconfiguration \u2014 contact support",
+          "404": {
+            "description": "Unknown account_id",
             "content": {
               "application/json": {
                 "schema": {
@@ -2633,7 +1772,7 @@
             "title": "Next",
             "description": "Code of the highest-priority action.",
             "examples": [
-              "connect_stripe"
+              "stripe_connect_required"
             ]
           }
         },
@@ -2674,20 +1813,19 @@
           "plan": {
             "type": "string",
             "title": "Plan",
-            "description": "Current plan tier. Values: free (15% fee), growth (5% fee), scale (3% fee).",
+            "description": "Current plan tier. Values: free (10% fee), pro (0% fee).",
             "examples": [
               "free",
-              "growth",
-              "scale"
+              "pro"
             ]
           },
           "fee_rate": {
             "type": "string",
             "title": "Fee Rate",
-            "description": "Transaction fee rate as decimal string. Determined by plan: free=0.15, growth=0.05, scale=0.03. Applied as platform fee on each order.",
+            "description": "Transaction fee rate as decimal string. Determined by plan: free=0.10, pro=0.00. Applied as platform fee on each order.",
             "examples": [
               "0.10",
-              "0.05"
+              "0.00"
             ]
           },
           "billing_status": {
@@ -2738,9 +1876,20 @@
               true
             ]
           },
-          "stats": {
-            "$ref": "#/components/schemas/AccountStats",
-            "description": "Account aggregate statistics."
+          "events_callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events Callback Url",
+            "description": "Optional account-level webhook URL for future non-order events",
+            "examples": [
+              "https://agent.example.com/events"
+            ]
           },
           "readiness": {
             "$ref": "#/components/schemas/AccountReadiness",
@@ -2764,46 +1913,10 @@
           "fee_rate",
           "billing_status",
           "notify_orders",
-          "stats",
           "readiness",
           "created_at"
         ],
         "title": "AccountResponse"
-      },
-      "AccountStats": {
-        "properties": {
-          "total_revenue": {
-            "type": "integer",
-            "title": "Total Revenue",
-            "description": "Total revenue in smallest currency unit (completed orders)",
-            "examples": [
-              145000
-            ]
-          },
-          "total_orders": {
-            "type": "integer",
-            "title": "Total Orders",
-            "description": "Total number of orders this month",
-            "examples": [
-              47
-            ]
-          },
-          "total_listings": {
-            "type": "integer",
-            "title": "Total Listings",
-            "description": "Total number of listings",
-            "examples": [
-              12
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "total_revenue",
-          "total_orders",
-          "total_listings"
-        ],
-        "title": "AccountStats"
       },
       "Action": {
         "properties": {
@@ -2811,7 +1924,7 @@
             "$ref": "#/components/schemas/ActionCode",
             "description": "Machine-readable action identifier for automation branching.",
             "examples": [
-              "connect_stripe"
+              "stripe_connect_required"
             ]
           },
           "kind": {
@@ -2854,13 +1967,14 @@
       "ActionCode": {
         "type": "string",
         "enum": [
-          "connect_stripe",
-          "enable_charges",
-          "update_billing",
-          "configure_fulfillment",
-          "publish_listing",
-          "webhook_disabled",
-          "fulfill_order"
+          "otp_verification_pending",
+          "stripe_connect_required",
+          "stripe_charges_disabled",
+          "account_deleted",
+          "listing_unpublished",
+          "listing_deliverable_missing",
+          "fulfillment_pending",
+          "dispute_open"
         ],
         "title": "ActionCode"
       },
@@ -2945,52 +2059,92 @@
         ],
         "title": "ActionResolve"
       },
-      "AddDeliverableRequest": {
+      "ApiKeyResponse": {
         "properties": {
-          "type": {
-            "$ref": "#/components/schemas/DeliverableType",
-            "description": "Deliverable type: `file` (uploaded via POST /v1/files), `url` (redirect), or `text` (literal string).",
+          "object": {
+            "type": "string",
+            "const": "api_key",
+            "title": "Object",
+            "description": "Object type identifier. Always `api_key`.",
+            "default": "api_key",
             "examples": [
-              "file"
+              "api_key"
             ]
           },
-          "token": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique API key ID (lbk_ prefixed).",
+            "examples": [
+              "lbk_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Human-friendly label for this key.",
+            "examples": [
+              "prod-agent"
+            ]
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix",
+            "description": "First 8 chars of the raw key (e.g. 'lb_abcd12') \u2014 safe to display.",
+            "examples": [
+              "lb_abcd12"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Time at which the key was created.",
+            "examples": [
+              "2026-04-01T12:00:00Z"
+            ]
+          },
+          "last_used_at": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "date-time"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Token",
-            "description": "File token from POST /v1/files. Required when type is `file`.",
+            "title": "Last Used At",
+            "description": "Last time this key was used to authenticate a request.",
             "examples": [
-              "file_7kQ2xY9mN3pR5tW1vB8a01"
+              "2026-04-10T09:00:00Z"
             ]
           },
-          "value": {
+          "revoked_at": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "date-time"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Value",
-            "description": "URL (https required) or text content. Required when type is `url` or `text`.",
+            "title": "Revoked At",
+            "description": "When the key was revoked. Null if still active.",
             "examples": [
-              "https://example.com/secret-area"
+              null
             ]
           }
         },
         "type": "object",
         "required": [
-          "type"
+          "id",
+          "name",
+          "prefix",
+          "created_at"
         ],
-        "title": "AddDeliverableRequest",
-        "description": "Add a single deliverable to a listing."
+        "title": "ApiKeyResponse"
       },
       "BlurMode": {
         "type": "string",
@@ -3001,63 +2155,171 @@
         ],
         "title": "BlurMode"
       },
-      "Body_upload_file": {
-        "properties": {
-          "file": {
-            "type": "string",
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "description": "The file to upload"
-          },
-          "purpose": {
-            "type": "string",
-            "title": "Purpose",
-            "description": "File purpose: 'deliverable' (listing content), 'cover' (listing image), 'avatar' (account image). Defaults to 'deliverable'.",
-            "default": "deliverable",
-            "examples": [
-              "deliverable"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "file"
-        ],
-        "title": "Body_upload_file"
-      },
-      "BootstrapCompleteRequest": {
-        "properties": {
-          "session": {
-            "type": "string",
-            "title": "Session",
-            "description": "Verified bootstrap session ID",
-            "examples": [
-              "sess_abc123"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "session"
-        ],
-        "title": "BootstrapCompleteRequest"
-      },
-      "BootstrapCompleteResponse": {
+      "BootstrapPollResponse": {
         "properties": {
           "object": {
             "type": "string",
-            "const": "bootstrap",
+            "const": "bootstrap_status",
             "title": "Object",
             "description": "Object type identifier.",
-            "default": "bootstrap",
+            "default": "bootstrap_status",
             "examples": [
-              "bootstrap"
+              "bootstrap_status"
+            ]
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "description": "True when the account is fully operational and can accept payments.",
+            "examples": [
+              false
             ]
           },
           "account_id": {
             "type": "string",
             "title": "Account Id",
-            "description": "Newly created or existing account ID. Use as the owner identity for all API calls.",
+            "description": "Account ID.",
+            "examples": [
+              "acc_01J3K4M5N6P7Q8R9S0T1U2V3W4"
+            ]
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/AccountReadiness",
+            "description": "Account readiness. When ready is true, actions is empty."
+          },
+          "stripe_onboarding_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Onboarding Url",
+            "description": "Stripe Connect onboarding URL. Non-null until Stripe Connect is complete.",
+            "examples": [
+              "https://connect.stripe.com/setup/s/..."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ready",
+          "account_id",
+          "readiness",
+          "stripe_onboarding_url"
+        ],
+        "title": "BootstrapPollResponse"
+      },
+      "BootstrapStartRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Seller email. OTP is sent to this address.",
+            "examples": [
+              "seller@example.com"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "BootstrapStartRequest"
+      },
+      "BootstrapStartResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "bootstrap_session",
+            "title": "Object",
+            "description": "Object type identifier.",
+            "default": "bootstrap_session",
+            "examples": [
+              "bootstrap_session"
+            ]
+          },
+          "bootstrap_token": {
+            "type": "string",
+            "title": "Bootstrap Token",
+            "description": "Single-use token, pass back in /verify. TTL 10 min.",
+            "examples": [
+              "bst_abc123"
+            ]
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id",
+            "description": "Stable account ID \u2014 use for /bootstrap/{account_id} polling.",
+            "examples": [
+              "acc_01J3K4M5N6P7Q8R9S0T1U2V3W4"
+            ]
+          },
+          "otp_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Otp Expires At",
+            "description": "When the OTP code expires.",
+            "examples": [
+              "2026-04-17T12:10:00Z"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "bootstrap_token",
+          "account_id",
+          "otp_expires_at"
+        ],
+        "title": "BootstrapStartResponse"
+      },
+      "BootstrapVerifyRequest": {
+        "properties": {
+          "bootstrap_token": {
+            "type": "string",
+            "title": "Bootstrap Token",
+            "description": "Token from /start.",
+            "examples": [
+              "bst_abc123"
+            ]
+          },
+          "otp_code": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 4,
+            "title": "Otp Code",
+            "description": "6-digit OTP pasted from email.",
+            "examples": [
+              "123456"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "bootstrap_token",
+          "otp_code"
+        ],
+        "title": "BootstrapVerifyRequest"
+      },
+      "BootstrapVerifyResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "bootstrap_result",
+            "title": "Object",
+            "description": "Object type identifier.",
+            "default": "bootstrap_result",
+            "examples": [
+              "bootstrap_result"
+            ]
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id",
+            "description": "Account ID. Use as the owner identity for all API calls.",
             "examples": [
               "acc_01J3K4M5N6P7Q8R9S0T1U2V3W4"
             ]
@@ -3069,130 +2331,33 @@
             "examples": [
               "lb_01J3K4M5N6P7Q8R9S0T1U2V3W4X5Y6Z7"
             ]
+          },
+          "stripe_onboarding_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stripe Onboarding Url",
+            "description": "Hand this URL to the human to complete Stripe Connect onboarding. Null if Stripe is already connected.",
+            "examples": [
+              "https://connect.stripe.com/setup/s/..."
+            ]
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/AccountReadiness",
+            "description": "Account readiness after bootstrap. Check operational; if false, actions lists what's needed."
           }
         },
         "type": "object",
         "required": [
           "account_id",
-          "api_key"
-        ],
-        "title": "BootstrapCompleteResponse"
-      },
-      "BootstrapRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email",
-            "description": "Account owner email",
-            "examples": [
-              "seller@example.com"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "email"
-        ],
-        "title": "BootstrapRequest"
-      },
-      "BootstrapResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "bootstrap_session",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "bootstrap_session",
-            "examples": [
-              "bootstrap_session"
-            ]
-          },
-          "session": {
-            "type": "string",
-            "title": "Session",
-            "description": "Bootstrap session ID. Pass to the next step.",
-            "examples": [
-              "sess_abc123"
-            ]
-          },
-          "otp_sent": {
-            "type": "boolean",
-            "title": "Otp Sent",
-            "description": "True when OTP was sent to the email address.",
-            "examples": [
-              true
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "session",
-          "otp_sent"
-        ],
-        "title": "BootstrapResponse"
-      },
-      "BootstrapVerifyRequest": {
-        "properties": {
-          "session": {
-            "type": "string",
-            "title": "Session",
-            "description": "Session ID from bootstrap step 1",
-            "examples": [
-              "sess_abc123"
-            ]
-          },
-          "code": {
-            "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
-            "title": "Code",
-            "description": "6-digit OTP code from email",
-            "examples": [
-              "123456"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "session",
-          "code"
-        ],
-        "title": "BootstrapVerifyRequest"
-      },
-      "BootstrapVerifyResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "bootstrap_session",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "bootstrap_session",
-            "examples": [
-              "bootstrap_session"
-            ]
-          },
-          "verified": {
-            "type": "boolean",
-            "title": "Verified",
-            "description": "True when OTP was verified successfully.",
-            "examples": [
-              true
-            ]
-          },
-          "session": {
-            "type": "string",
-            "title": "Session",
-            "description": "Verified session ID. Pass to POST /v1/bootstrap/complete.",
-            "examples": [
-              "sess_abc123"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "verified",
-          "session"
+          "api_key",
+          "stripe_onboarding_url",
+          "readiness"
         ],
         "title": "BootstrapVerifyResponse"
       },
@@ -3328,20 +2493,37 @@
               "Premium Stock Picks"
             ]
           },
-          "fulfillment_url": {
+          "fulfillment_mode": {
+            "$ref": "#/components/schemas/FulfillmentMode",
+            "description": "STATIC: listing ships with a pre-baked deliverable, delivered at order.paid. ASYNC: agent delivers via POST /v1/orders/{id}/fulfill after paid.",
+            "default": "async",
+            "examples": [
+              "async"
+            ]
+          },
+          "deliverable": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/Deliverable"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Fulfillment Url",
-            "description": "Callback URL \u2014 ListBee POSTs an enriched payload here when someone buys this listing. Use for stateless agent fulfillment: metadata + checkout_data round-tripped in the callback. Must be HTTPS in production.",
-            "examples": [
-              "https://my-agent.com/fulfill"
-            ]
+            "description": "For STATIC listings, the content to deliver. Agent-supplied URL or Markdown text. Must be absent for ASYNC listings."
+          },
+          "agent_callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL. Receives order.paid, order.fulfilled, order.refunded, order.disputed events signed with the listing's signing_secret (HMAC-SHA256). Leave null to rely on polling /v1/orders or /v1/events instead."
           },
           "price": {
             "type": "integer",
@@ -3352,24 +2534,6 @@
               500,
               2900,
               9999
-            ]
-          },
-          "stock": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stock",
-            "description": "Stock quantity. null = unlimited (default), 0 = out of stock, positive integer = sell N then stop. Auto-decrements on each order.",
-            "examples": [
-              null,
-              100,
-              0
             ]
           },
           "description": {
@@ -3453,9 +2617,24 @@
               }
             ],
             "title": "Cover",
-            "description": "Cover image file token from POST /v1/files. Shown prominently on the product page. Recommended: 1200x630px.",
+            "description": "Cover image CDN key. Shown prominently on the product page. Recommended: 1200x630px.",
             "examples": [
-              "file_tok_abc123"
+              "covers/abc123.jpg"
+            ]
+          },
+          "signing_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signing Secret",
+            "description": "Custom signing secret for this listing. Used to verify webhook payloads via HMAC-SHA256. If omitted, a secure secret is auto-generated. Shown once in this response \u2014 subsequent reads only show `signing_secret_preview` (last 4 chars). Rotate via PATCH with signing_secret=null (regenerate) or a new value.",
+            "examples": [
+              "my-secret-value"
             ]
           },
           "metadata": {
@@ -3469,7 +2648,7 @@
               }
             ],
             "title": "Metadata",
-            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Use for your own tracking (campaign IDs, source tags).",
+            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Use for your own tracking (campaign IDs, source tags). Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
             "examples": [
               {
                 "campaign": "launch-week",
@@ -3570,7 +2749,7 @@
           },
           "cover_blur": {
             "$ref": "#/components/schemas/BlurMode",
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs when deliverable is an image file.",
+            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
             "default": "auto",
             "examples": [
               "auto"
@@ -3665,223 +2844,74 @@
         "title": "CreateListingRequest",
         "description": "All optional display fields (name, description, tagline, highlights, cta, badges, cover, reviews, faqs) appear on the product page buyers see."
       },
-      "CreateWebhookRequest": {
+      "CreateListingResponse": {
         "properties": {
-          "name": {
+          "object": {
             "type": "string",
-            "title": "Name",
-            "description": "A name to help you identify this endpoint in the dashboard",
+            "const": "listing_with_secret",
+            "title": "Object",
+            "description": "Object type identifier. Always `listing_with_secret`.",
+            "default": "listing_with_secret",
             "examples": [
-              "Order notifications"
+              "listing_with_secret"
             ]
           },
-          "url": {
-            "type": "string",
-            "maxLength": 2083,
-            "minLength": 1,
-            "format": "uri",
-            "title": "Url",
-            "description": "The HTTPS URL that will receive POST requests for each event",
-            "examples": [
-              "https://example.com/webhooks/listbee"
-            ]
+          "listing": {
+            "$ref": "#/components/schemas/ListingResponse",
+            "description": "The created listing."
           },
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/WebhookEventType"
-            },
-            "type": "array",
-            "title": "Events",
-            "description": "Event types to subscribe to. Empty = all events. Available: order.paid, order.fulfilled, order.refunded, order.disputed, order.dispute_closed, order.canceled, listing.created, listing.updated, listing.published, listing.out_of_stock, listing.deleted, customer.created.",
+          "signing_secret": {
+            "type": "string",
+            "title": "Signing Secret",
+            "description": "Full listing signing secret \u2014 shown once at creation. Store it immediately. Use to verify HMAC-SHA256 signatures on webhook payloads for this listing. Subsequent reads only expose `signing_secret_preview` (last 4 chars) via GET /v1/listings/{id}.",
             "examples": [
-              [
-                "order.paid"
-              ]
+              "Xk9mN2pR5tW1vB8aQ4nL7xY0zJ3eF6cH"
             ]
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "url"
+          "listing",
+          "signing_secret"
         ],
-        "title": "CreateWebhookRequest"
+        "title": "CreateListingResponse",
+        "description": "Returned by POST /v1/listings. Contains the listing and the full signing_secret (shown once)."
       },
-      "CustomerListResponse": {
+      "Deliverable": {
         "properties": {
-          "object": {
-            "type": "string",
-            "const": "list",
-            "title": "Object",
-            "description": "Object type identifier.",
-            "default": "list",
-            "examples": [
-              "list"
-            ]
-          },
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/CustomerResponse"
-            },
-            "type": "array",
-            "title": "Data",
-            "description": "Array of customer objects."
-          },
-          "cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cursor",
-            "description": "Cursor for next page."
-          },
-          "has_more": {
-            "type": "boolean",
-            "title": "Has More",
-            "description": "Whether more results exist.",
-            "examples": [
-              false
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "data",
-          "has_more"
-        ],
-        "title": "CustomerListResponse"
-      },
-      "CustomerResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "customer",
-            "title": "Object",
-            "description": "Object type identifier. Always `customer`.",
-            "default": "customer",
-            "examples": [
-              "customer"
-            ]
+          "schema_version": {
+            "type": "integer",
+            "title": "Schema Version",
+            "default": 1
           },
           "id": {
             "type": "string",
-            "title": "Id",
-            "description": "Unique customer ID (cus_ prefixed).",
-            "examples": [
-              "cus_7kQ2xY9mN3pR5tW1vB8a01"
-            ]
+            "title": "Id"
           },
-          "email": {
+          "type": {
+            "$ref": "#/components/schemas/DeliverableType"
+          },
+          "value": {
             "type": "string",
-            "title": "Email",
-            "description": "Buyer email address.",
-            "examples": [
-              "alice@example.com"
-            ]
-          },
-          "total_orders": {
-            "type": "integer",
-            "title": "Total Orders",
-            "description": "Total number of completed orders from this buyer.",
-            "examples": [
-              3
-            ]
-          },
-          "total_spent": {
-            "type": "integer",
-            "title": "Total Spent",
-            "description": "Total amount spent in cents (smallest currency unit).",
-            "examples": [
-              8700
-            ]
-          },
-          "currency": {
-            "type": "string",
-            "title": "Currency",
-            "description": "Currency code.",
-            "examples": [
-              "usd"
-            ]
-          },
-          "first_order_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "First Order At",
-            "description": "When this buyer first purchased.",
-            "examples": [
-              "2026-03-15T10:00:00Z"
-            ]
-          },
-          "last_order_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Order At",
-            "description": "When this buyer most recently purchased.",
-            "examples": [
-              "2026-04-01T14:30:00Z"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "When this customer record was created.",
-            "examples": [
-              "2026-03-15T10:00:00Z"
-            ]
+            "title": "Value",
+            "description": "Literal URL or Markdown text"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "email",
-          "total_orders",
-          "total_spent",
-          "currency",
-          "created_at"
+          "type",
+          "value"
         ],
-        "title": "CustomerResponse"
+        "title": "Deliverable",
+        "description": "Value object representing digital content that ListBee can deliver."
       },
       "DeliverableInputRequest": {
         "properties": {
           "type": {
             "$ref": "#/components/schemas/DeliverableType",
-            "description": "Deliverable type: `file` (uploaded via POST /v1/files), `url` (redirect), or `text` (literal string).",
+            "description": "Deliverable type: `url` (redirect link) or `text` (literal string).",
             "examples": [
-              "file"
-            ]
-          },
-          "token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Token",
-            "description": "File token from POST /v1/files. Required when type is `file`.",
-            "examples": [
-              "file_7kQ2xY9mN3pR5tW1vB8a01"
+              "url"
             ]
           },
           "value": {
@@ -3931,7 +2961,7 @@
             "$ref": "#/components/schemas/DeliverableType",
             "description": "Deliverable type.",
             "examples": [
-              "file"
+              "url"
             ]
           },
           "status": {
@@ -3939,51 +2969,6 @@
             "description": "Processing status.",
             "examples": [
               "ready"
-            ]
-          },
-          "filename": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filename",
-            "description": "Original filename (file type only).",
-            "examples": [
-              "ebook.pdf"
-            ]
-          },
-          "size": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Size",
-            "description": "File size in bytes (file type only).",
-            "examples": [
-              2458631
-            ]
-          },
-          "mime_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Mime Type",
-            "description": "MIME type (file type only).",
-            "examples": [
-              "application/pdf"
             ]
           },
           "url": {
@@ -4037,11 +3022,160 @@
       "DeliverableType": {
         "type": "string",
         "enum": [
-          "file",
           "url",
           "text"
         ],
         "title": "DeliverableType"
+      },
+      "EventListResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "list",
+            "title": "Object",
+            "description": "Object type identifier. Always `list`.",
+            "default": "list",
+            "examples": [
+              "list"
+            ]
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EventResponse"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Array of event objects, newest first."
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor",
+            "description": "Pass as `cursor` query param to fetch the next page.",
+            "examples": [
+              "evt_abc123xyz"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "description": "True if more results exist beyond this page.",
+            "default": false,
+            "examples": [
+              false
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "EventListResponse"
+      },
+      "EventResponse": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "event",
+            "title": "Object",
+            "description": "Object type identifier. Always `event`.",
+            "default": "event",
+            "examples": [
+              "event"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Event ID. evt_ prefix.",
+            "examples": [
+              "evt_abc123xyz"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Event type (e.g. order.paid, order.fulfilled, order.refunded, order.disputed).",
+            "examples": [
+              "order.paid"
+            ]
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id",
+            "description": "Account that owns this event.",
+            "examples": [
+              "acc_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "listing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Listing Id",
+            "description": "Related listing ID, if applicable.",
+            "examples": [
+              "lst_7kQ2xY9mN3pR5tW1vB8a"
+            ]
+          },
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id",
+            "description": "Related order ID, if applicable.",
+            "examples": [
+              "ord_9xM4kP7nR2qT5wY1"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "When the event was recorded (UTC).",
+            "examples": [
+              "2026-04-02T14:30:00Z"
+            ]
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data",
+            "description": "Event payload \u2014 same shape delivered to agent_callback_url.",
+            "examples": [
+              {
+                "object": "event",
+                "type": "order.paid"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "account_id",
+          "created_at",
+          "data"
+        ],
+        "title": "EventResponse",
+        "description": "A persisted domain event \u2014 same shape delivered to agent_callback_url."
       },
       "FaqItemInput": {
         "properties": {
@@ -4071,115 +3205,46 @@
         ],
         "title": "FaqItemInput"
       },
-      "FileResponse": {
+      "FulfillOrderRequest": {
         "properties": {
-          "object": {
-            "type": "string",
-            "const": "file",
-            "title": "Object",
-            "description": "Object type identifier. Always `file`.",
-            "default": "file",
-            "examples": [
-              "file"
-            ]
+          "deliverable": {
+            "$ref": "#/components/schemas/DeliverableInputRequest",
+            "description": "Generated content to deliver to the buyer. Type must be url (redirect link) or text (literal string). ListBee emails the buyer a permanent unlock link and transitions the order to FULFILLED."
           },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "File token. Pass as 'token' to set_deliverables, or as 'cover'/'avatar' to create/update listing/account.",
-            "examples": [
-              "file_7kQ2xY9mN3pR5tW1vB8a01"
-            ]
-          },
-          "filename": {
-            "type": "string",
-            "title": "Filename",
-            "description": "Original filename",
-            "examples": [
-              "ebook.pdf"
-            ]
-          },
-          "size": {
-            "type": "integer",
-            "title": "Size",
-            "description": "File size in bytes",
-            "examples": [
-              2458631
-            ]
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type",
-            "examples": [
-              "application/pdf"
-            ]
-          },
-          "purpose": {
-            "type": "string",
-            "title": "Purpose",
-            "description": "File purpose. Determines size and type limits: 'avatar' (2 MB, JPEG/PNG/WebP/GIF), 'cover' (5 MB, JPEG/PNG/WebP/GIF), 'deliverable' (25 MB, documents/images/audio/video).",
-            "examples": [
-              "deliverable"
-            ]
-          },
-          "expires_at": {
+          "metadata": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "date-time"
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Expires At",
-            "description": "Token expires at this time. Upload a new file after expiry. None when file is permanently attached.",
+            "title": "Metadata",
+            "description": "Arbitrary key-value pairs to attach to this order. Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
             "examples": [
-              "2026-04-03T15:00:00Z"
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Time at which the file was uploaded",
-            "examples": [
-              "2026-04-03T14:00:00Z"
+              {
+                "generated_by": "my-agent",
+                "version": "1"
+              }
             ]
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "filename",
-          "size",
-          "mime_type",
-          "purpose",
-          "expires_at",
-          "created_at"
-        ],
-        "title": "FileResponse"
-      },
-      "FulfillOrderRequest": {
-        "properties": {
-          "deliverables": {
-            "items": {
-              "$ref": "#/components/schemas/DeliverableInputRequest"
-            },
-            "type": "array",
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "Deliverables",
-            "description": "Generated content to deliver to the buyer (1\u20133 items). Mixed types allowed: file (token from POST /v1/files), url (redirect link), or text (literal string). ListBee creates an access grant from these and emails the buyer a download link."
-          }
-        },
-        "type": "object",
-        "required": [
-          "deliverables"
+          "deliverable"
         ],
         "title": "FulfillOrderRequest",
-        "description": "Push generated content to a generated-type order. ListBee creates an access grant,\nemails the buyer a download link, and transitions the order to fulfilled."
+        "description": "Push generated content to a generated-type order.\nEmails the buyer a permanent unlock link and transitions the order to fulfilled."
+      },
+      "FulfillmentMode": {
+        "type": "string",
+        "enum": [
+          "static",
+          "async"
+        ],
+        "title": "FulfillmentMode"
       },
       "HTTPValidationError": {
         "properties": {
@@ -4275,7 +3340,7 @@
             "title": "Next",
             "description": "Code of the highest-priority action. Agents execute this first.",
             "examples": [
-              "connect_stripe"
+              "stripe_connect_required"
             ]
           }
         },
@@ -4390,15 +3455,25 @@
               9999
             ]
           },
-          "deliverables": {
-            "items": {
-              "$ref": "#/components/schemas/DeliverableResponse"
-            },
-            "type": "array",
-            "title": "Deliverables",
-            "description": "Deliverables pre-attached to this listing. When present, ListBee auto-delivers them to buyers on payment. When empty, payment fires webhooks and fulfillment_url \u2014 your system handles delivery."
+          "fulfillment_mode": {
+            "$ref": "#/components/schemas/FulfillmentMode",
+            "description": "STATIC: pre-baked deliverable delivered at order.paid. ASYNC: agent delivers via /v1/orders/{id}/fulfill.",
+            "examples": [
+              "async"
+            ]
           },
-          "fulfillment_url": {
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliverableResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pre-baked deliverable for STATIC listings. Null for ASYNC listings."
+          },
+          "agent_callback_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -4407,18 +3482,10 @@
                 "type": "null"
               }
             ],
-            "title": "Fulfillment Url",
-            "description": "Per-listing callback URL. ListBee POSTs enriched order payload here on purchase.",
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL receiving order events signed with signing_secret.",
             "examples": [
               "https://my-agent.com/fulfill"
-            ]
-          },
-          "has_deliverables": {
-            "type": "boolean",
-            "title": "Has Deliverables",
-            "description": "True if deliverables are attached and have content. Determines post-payment behavior: true = ListBee auto-delivers, false = webhook/fulfillment_url fires.",
-            "examples": [
-              true
             ]
           },
           "checkout_schema": {
@@ -4474,7 +3541,7 @@
           },
           "cover_blur": {
             "$ref": "#/components/schemas/BlurMode",
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs when deliverable is an image file.",
+            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
             "default": "auto",
             "examples": [
               "auto"
@@ -4550,6 +3617,14 @@
               }
             ]
           },
+          "signing_secret_preview": {
+            "type": "string",
+            "title": "Signing Secret Preview",
+            "description": "Last 4 characters of the listing signing secret. Use this to identify the active secret without revealing it. The full secret is only returned once: on create (in `signing_secret`) or after rotation.",
+            "examples": [
+              "a1b2"
+            ]
+          },
           "utm_source": {
             "anyOf": [
               {
@@ -4597,26 +3672,9 @@
           },
           "status": {
             "$ref": "#/components/schemas/ListingStatus",
-            "description": "Current listing status. Values: draft (editable, not yet live), published (live, accepting orders), deleted (soft-deleted).",
+            "description": "Current listing status. Values: draft (editable, not yet live), published (live, accepting orders), archived (terminal \u2014 removed from sale).",
             "examples": [
               "published"
-            ]
-          },
-          "stock": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stock",
-            "description": "Stock quantity. null = unlimited, 0 = out of stock. Auto-decrements on each order.",
-            "examples": [
-              null,
-              50,
-              0
             ]
           },
           "url": {
@@ -4670,8 +3728,9 @@
           "name",
           "highlights",
           "price",
-          "has_deliverables",
+          "fulfillment_mode",
           "has_cover",
+          "signing_secret_preview",
           "status",
           "readiness",
           "created_at"
@@ -4682,7 +3741,8 @@
         "type": "string",
         "enum": [
           "draft",
-          "published"
+          "published",
+          "archived"
         ],
         "title": "ListingStatus"
       },
@@ -4803,29 +3863,11 @@
               "published"
             ]
           },
-          "stock": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stock",
-            "description": "Stock quantity. null = unlimited.",
+          "fulfillment_mode": {
+            "$ref": "#/components/schemas/FulfillmentMode",
+            "description": "STATIC: pre-baked deliverable delivered at order.paid. ASYNC: agent delivers via /v1/orders/{id}/fulfill.",
             "examples": [
-              null,
-              50,
-              0
-            ]
-          },
-          "has_deliverables": {
-            "type": "boolean",
-            "title": "Has Deliverables",
-            "description": "Whether listing has deliverables for auto-fulfillment",
-            "examples": [
-              true
+              "async"
             ]
           },
           "has_cover": {
@@ -4866,7 +3908,7 @@
           "name",
           "price",
           "status",
-          "has_deliverables",
+          "fulfillment_mode",
           "created_at"
         ],
         "title": "ListingSummary",
@@ -4953,7 +3995,7 @@
             "title": "Next",
             "description": "Highest-priority action code.",
             "examples": [
-              "fulfill_order"
+              "fulfillment_pending"
             ]
           }
         },
@@ -5096,13 +4138,16 @@
               }
             ]
           },
-          "deliverables": {
-            "items": {
-              "$ref": "#/components/schemas/DeliverableResponse"
-            },
-            "type": "array",
-            "title": "Deliverables",
-            "description": "Deliverables attached to this order. Auto-populated from listing deliverables on payment, or populated when POST /fulfill is called."
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeliverableResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Deliverable attached to this order. Populated when POST /fulfill is called. null until the order is fulfilled."
           },
           "actions": {
             "anyOf": [
@@ -5117,11 +4162,11 @@
               }
             ],
             "title": "Actions",
-            "description": "Available actions for this order. Only present when actions exist. PAID orders show FULFILL_ORDER (suggested) \u2014 deliver content to buyer via ListBee. Omitted for FULFILLED, CANCELED, FAILED orders."
+            "description": "Available actions for this order. Only present when actions exist. PAID orders show FULFILLMENT_PENDING (suggested) \u2014 deliver content to buyer via ListBee. Omitted for FULFILLED, CANCELED, FAILED orders."
           },
           "readiness": {
             "$ref": "#/components/schemas/OrderReadiness",
-            "description": "Order readiness state. fulfilled=True means the buyer has received the content. When fulfilled=False and status=PAID, actions contains FULFILL_ORDER \u2014 call it to deliver. Agents should check readiness.next for the highest-priority action code."
+            "description": "Order readiness state. fulfilled=True means the buyer has received the content. When fulfilled=False and status=PAID, actions contains FULFILLMENT_PENDING \u2014 call it to deliver. Agents should check readiness.next for the highest-priority action code."
           },
           "stripe_payment_intent_id": {
             "type": "string",
@@ -5223,6 +4268,33 @@
               "2026-04-02T10:00:00Z"
             ]
           },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Arbitrary key-value pairs attached to this order. Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
+            "examples": [
+              {
+                "campaign": "launch-week",
+                "source": "n8n"
+              }
+            ]
+          },
+          "unlock_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unlock Url",
+            "description": "Permanent bearer link to unlock and download this order's deliverables. Present on FULFILLED orders with deliverables. Permanent \u2014 does not expire.",
+            "examples": [
+              "https://buy.listbee.so/my-product?token=abc123"
+            ]
+          },
           "paid_at": {
             "anyOf": [
               {
@@ -5284,11 +4356,8 @@
       "OrderStatus": {
         "type": "string",
         "enum": [
-          "pending",
           "paid",
-          "fulfilled",
-          "canceled",
-          "failed"
+          "fulfilled"
         ],
         "title": "OrderStatus"
       },
@@ -5666,6 +4735,39 @@
         "title": "ProblemDetail",
         "description": "RFC 9457 Problem Details for HTTP APIs."
       },
+      "RedeliveryAck": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "redelivery_ack",
+            "title": "Object",
+            "description": "Discriminator for client-side response typing.",
+            "default": "redelivery_ack"
+          },
+          "order_id": {
+            "type": "string",
+            "title": "Order Id",
+            "description": "The order whose events were requeued.",
+            "examples": [
+              "ord_abc123"
+            ]
+          },
+          "scheduled_attempts": {
+            "type": "integer",
+            "title": "Scheduled Attempts",
+            "description": "Count of events re-scheduled for delivery. Zero means the listing has no agent_callback_url.",
+            "examples": [
+              1
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "scheduled_attempts"
+        ],
+        "title": "RedeliveryAck"
+      },
       "ReviewInput": {
         "properties": {
           "name": {
@@ -5703,31 +4805,38 @@
         ],
         "title": "ReviewInput"
       },
-      "SetDeliverablesRequest": {
+      "RotateSigningSecretResponse": {
         "properties": {
-          "deliverables": {
-            "items": {
-              "$ref": "#/components/schemas/DeliverableInputRequest"
-            },
-            "type": "array",
-            "title": "Deliverables",
-            "description": "Array of deliverables. Max 3. Mixed types allowed.",
+          "object": {
+            "type": "string",
+            "const": "listing_with_secret",
+            "title": "Object",
+            "description": "Object type identifier. Always `listing_with_secret`.",
+            "default": "listing_with_secret",
             "examples": [
-              [
-                {
-                  "token": "file_7kQ2xY9mN3pR5tW1vB8a01",
-                  "type": "file"
-                }
-              ]
+              "listing_with_secret"
+            ]
+          },
+          "listing": {
+            "$ref": "#/components/schemas/ListingResponse",
+            "description": "The updated listing."
+          },
+          "signing_secret": {
+            "type": "string",
+            "title": "Signing Secret",
+            "description": "New full signing secret \u2014 shown once after rotation. Store it immediately. Replaces the previous secret for this listing's webhook signature verification.",
+            "examples": [
+              "Yk8mN3pR6tW2vB9aQ5nL8xY1zJ4eF7cH"
             ]
           }
         },
         "type": "object",
         "required": [
-          "deliverables"
+          "listing",
+          "signing_secret"
         ],
-        "title": "SetDeliverablesRequest",
-        "description": "Replace all deliverables on a listing."
+        "title": "RotateSigningSecretResponse",
+        "description": "Returned by PATCH /v1/listings/{id} when signing_secret rotation occurred."
       },
       "StripeConnectSessionResponse": {
         "properties": {
@@ -5797,15 +4906,8 @@
             "examples": [
               true
             ]
-          }
-        },
-        "type": "object",
-        "title": "UpdateAccountRequest",
-        "description": "Partial update for account settings."
-      },
-      "UpdateListingRequest": {
-        "properties": {
-          "fulfillment_url": {
+          },
+          "events_callback_url": {
             "anyOf": [
               {
                 "type": "string"
@@ -5814,11 +4916,56 @@
                 "type": "null"
               }
             ],
-            "title": "Fulfillment Url",
-            "description": "Callback URL \u2014 ListBee POSTs here on purchase. Set to null to remove. Updating this field rotates the fulfillment_secret.",
+            "title": "Events Callback Url",
+            "description": "Optional account-level webhook URL for future non-order events. Set to null to remove",
             "examples": [
-              "https://my-agent.com/fulfill"
+              "https://agent.example.com/events"
             ]
+          }
+        },
+        "type": "object",
+        "title": "UpdateAccountRequest",
+        "description": "Partial update for account settings."
+      },
+      "UpdateListingRequest": {
+        "properties": {
+          "fulfillment_mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FulfillmentMode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "STATIC: listing ships with a pre-baked deliverable, delivered at order.paid. ASYNC: agent delivers via POST /v1/orders/{id}/fulfill after paid.",
+            "examples": [
+              "async"
+            ]
+          },
+          "deliverable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Deliverable"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For STATIC listings, the content to deliver. Agent-supplied URL or Markdown text."
+          },
+          "agent_callback_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Callback Url",
+            "description": "Per-listing webhook URL. Receives order.paid, order.fulfilled, order.refunded, order.disputed events signed with the listing's signing_secret (HMAC-SHA256). Leave null to rely on polling /v1/orders or /v1/events instead."
           },
           "name": {
             "anyOf": [
@@ -5851,23 +4998,6 @@
               500,
               2900,
               9999
-            ]
-          },
-          "stock": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stock",
-            "description": "Stock quantity. null = unlimited, 0 = out of stock, positive integer = sell N then stop.",
-            "examples": [
-              100,
-              0
             ]
           },
           "checkout_schema": {
@@ -5978,9 +5108,25 @@
               }
             ],
             "title": "Cover",
-            "description": "Cover image file token from POST /v1/files. Shown prominently on the product page. Recommended: 1200x630px.",
+            "description": "Cover image CDN key. Shown prominently on the product page. Recommended: 1200x630px.",
             "examples": [
-              "file_tok_abc123"
+              "covers/abc123.jpg"
+            ]
+          },
+          "signing_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signing Secret",
+            "description": "Rotate the listing signing secret. Pass null to auto-generate a new secret, or a string to set a custom value. Omit entirely to leave the current secret unchanged. The new full value is returned once in this response under `signing_secret`.",
+            "examples": [
+              null,
+              "my-new-secret"
             ]
           },
           "metadata": {
@@ -5994,7 +5140,7 @@
               }
             ],
             "title": "Metadata",
-            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Use for your own tracking (campaign IDs, source tags).",
+            "description": "Arbitrary key-value pairs forwarded in webhook event payloads. Replaces existing metadata entirely. Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
             "examples": [
               {
                 "source": "n8n"
@@ -6095,7 +5241,7 @@
                 "type": "null"
               }
             ],
-            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs when deliverable is an image file.",
+            "description": "Cover image blur mode. 'true' always blurs, 'false' never blurs, 'auto' blurs for image deliverables.",
             "examples": [
               "auto"
             ]
@@ -6166,80 +5312,6 @@
         "title": "UpdateListingRequest",
         "description": "Partial update \u2014 only provided fields are changed."
       },
-      "UpdateWebhookRequest": {
-        "properties": {
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name",
-            "description": "Display name",
-            "examples": [
-              "Order notifications"
-            ]
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url",
-            "description": "HTTPS endpoint URL",
-            "examples": [
-              "https://example.com/webhooks/listbee"
-            ]
-          },
-          "events": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/WebhookEventType"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Events",
-            "description": "Replaces the current event subscriptions. Empty list subscribes to all events",
-            "examples": [
-              [
-                "order.paid"
-              ]
-            ]
-          },
-          "enabled": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Enabled",
-            "description": "Set to `false` to pause delivery without deleting the endpoint",
-            "examples": [
-              true
-            ]
-          }
-        },
-        "type": "object",
-        "title": "UpdateWebhookRequest"
-      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -6279,500 +5351,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "WebhookEventListResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "list",
-            "title": "Object",
-            "description": "Object type identifier. Always `list`.",
-            "default": "list",
-            "examples": [
-              "list"
-            ]
-          },
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/WebhookEventResponse"
-            },
-            "type": "array",
-            "title": "Data",
-            "description": "Array of webhook event objects."
-          },
-          "cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cursor",
-            "description": "Pass as `cursor` query param to fetch the next page",
-            "examples": [
-              "lst_7kQ2xY9mN3pR5tW1vB8a"
-            ]
-          },
-          "has_more": {
-            "type": "boolean",
-            "title": "Has More",
-            "description": "True if more results exist beyond this page",
-            "default": false,
-            "examples": [
-              false
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "WebhookEventListResponse"
-      },
-      "WebhookEventResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "webhook_event",
-            "title": "Object",
-            "description": "Object type identifier. Always `webhook_event`.",
-            "default": "webhook_event",
-            "examples": [
-              "webhook_event"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Unique webhook event ID (evt_ prefixed).",
-            "examples": [
-              "evt_7kQ2xY9mN3pR5tW1"
-            ]
-          },
-          "event_type": {
-            "$ref": "#/components/schemas/WebhookEventType",
-            "description": "The event type that triggered this delivery",
-            "examples": [
-              "order.paid"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "delivered",
-              "failed"
-            ],
-            "title": "Status",
-            "description": "Computed status: `delivered` if delivered_at is set, `failed` if attempts >= max_retries, otherwise `pending`.",
-            "examples": [
-              "delivered"
-            ]
-          },
-          "attempts": {
-            "type": "integer",
-            "title": "Attempts",
-            "description": "Number of delivery attempts made",
-            "examples": [
-              1
-            ]
-          },
-          "max_retries": {
-            "type": "integer",
-            "title": "Max Retries",
-            "description": "Maximum delivery attempts before marking as failed",
-            "examples": [
-              5
-            ]
-          },
-          "response_status": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Response Status",
-            "description": "HTTP status code from the last delivery attempt",
-            "examples": [
-              200
-            ]
-          },
-          "last_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Error",
-            "description": "Error message from the last failed attempt",
-            "examples": [
-              null
-            ]
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Time at which the event was created",
-            "examples": [
-              "2026-04-03T14:30:00Z"
-            ]
-          },
-          "delivered_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Delivered At",
-            "description": "Time at which the event was successfully delivered",
-            "examples": [
-              "2026-04-03T14:30:01Z"
-            ]
-          },
-          "failed_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Failed At",
-            "description": "Time at which the event permanently failed (all retries exhausted)",
-            "examples": [
-              null
-            ]
-          },
-          "next_retry_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Retry At",
-            "description": "Expected time for the next delivery retry",
-            "examples": [
-              null
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "event_type",
-          "status",
-          "attempts",
-          "max_retries",
-          "created_at"
-        ],
-        "title": "WebhookEventResponse"
-      },
-      "WebhookEventType": {
-        "type": "string",
-        "enum": [
-          "order.paid",
-          "order.fulfilled",
-          "order.refunded",
-          "order.disputed",
-          "order.dispute_closed",
-          "order.canceled",
-          "listing.created",
-          "listing.updated",
-          "listing.published",
-          "listing.out_of_stock",
-          "listing.deleted",
-          "customer.created"
-        ],
-        "title": "WebhookEventType"
-      },
-      "WebhookListResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "list",
-            "title": "Object",
-            "description": "Object type identifier. Always `list`.",
-            "default": "list",
-            "examples": [
-              "list"
-            ]
-          },
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/WebhookResponse"
-            },
-            "type": "array",
-            "title": "Data",
-            "description": "Array of webhook objects."
-          },
-          "cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cursor",
-            "description": "Pass as `cursor` query param to fetch the next page.",
-            "examples": [
-              "wh_3mK8nP2qR5tW7xY1"
-            ]
-          },
-          "has_more": {
-            "type": "boolean",
-            "title": "Has More",
-            "description": "True if more results exist beyond this page.",
-            "default": false,
-            "examples": [
-              false
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "title": "WebhookListResponse"
-      },
-      "WebhookReadiness": {
-        "properties": {
-          "ready": {
-            "type": "boolean",
-            "title": "Ready",
-            "description": "True when the webhook is active and receiving events.",
-            "examples": [
-              true
-            ]
-          },
-          "actions": {
-            "items": {
-              "$ref": "#/components/schemas/Action"
-            },
-            "type": "array",
-            "title": "Actions",
-            "description": "Steps to fix the webhook."
-          },
-          "next": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next",
-            "description": "Highest-priority action code.",
-            "examples": [
-              null
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "ready"
-        ],
-        "title": "WebhookReadiness"
-      },
-      "WebhookResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "webhook",
-            "title": "Object",
-            "description": "Object type identifier. Always `webhook`.",
-            "default": "webhook",
-            "examples": [
-              "webhook"
-            ]
-          },
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Unique webhook ID (wh_ prefixed).",
-            "examples": [
-              "wh_3mK8nP2qR5tW7xY1"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Display name",
-            "examples": [
-              "Order notifications"
-            ]
-          },
-          "url": {
-            "type": "string",
-            "title": "Url",
-            "description": "Endpoint URL",
-            "examples": [
-              "https://example.com/webhooks/listbee"
-            ]
-          },
-          "secret": {
-            "type": "string",
-            "title": "Secret",
-            "description": "HMAC-SHA256 signing secret. Use to verify webhook payload signatures. See docs for verification examples.",
-            "examples": [
-              "whsec_a1b2c3d4e5f6"
-            ]
-          },
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/WebhookEventType"
-            },
-            "type": "array",
-            "title": "Events",
-            "description": "Subscribed event types. Empty means all events",
-            "examples": [
-              [
-                "order.paid"
-              ]
-            ]
-          },
-          "enabled": {
-            "type": "boolean",
-            "title": "Enabled",
-            "description": "`false` when delivery is paused",
-            "examples": [
-              true
-            ]
-          },
-          "disabled_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Disabled Reason",
-            "description": "Reason the webhook was disabled. `consecutive_failures` when auto-disabled after repeated delivery failures.",
-            "examples": [
-              null
-            ]
-          },
-          "readiness": {
-            "$ref": "#/components/schemas/WebhookReadiness",
-            "description": "Readiness status with actionable steps if the webhook needs attention."
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Time at which the endpoint was created",
-            "examples": [
-              "2026-04-01T09:00:00Z"
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "url",
-          "secret",
-          "events",
-          "enabled",
-          "readiness",
-          "created_at"
-        ],
-        "title": "WebhookResponse"
-      },
-      "WebhookTestResponse": {
-        "properties": {
-          "object": {
-            "type": "string",
-            "const": "webhook_test",
-            "title": "Object",
-            "description": "Object type identifier. Always `webhook_test`.",
-            "default": "webhook_test",
-            "examples": [
-              "webhook_test"
-            ]
-          },
-          "success": {
-            "type": "boolean",
-            "title": "Success",
-            "description": "`true` if the endpoint returned a 2xx status code",
-            "examples": [
-              true
-            ]
-          },
-          "status_code": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status Code",
-            "description": "HTTP status code returned by the endpoint",
-            "examples": [
-              200
-            ]
-          },
-          "response_body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Response Body",
-            "description": "Response body from the endpoint, truncated to 2000 characters",
-            "examples": [
-              "OK"
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error",
-            "description": "Error message if delivery failed entirely",
-            "examples": [
-              null
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "WebhookTestResponse"
       }
     },
     "securitySchemes": {
@@ -6797,20 +5375,12 @@
       "description": "Create, list, and revoke API keys."
     },
     {
-      "name": "Files",
-      "description": "Upload files for deliverables, covers, and avatars."
-    },
-    {
       "name": "Listings",
       "description": "Create, list, get, update, and delete listings."
     },
     {
       "name": "Orders",
       "description": "View buyer orders and payment details."
-    },
-    {
-      "name": "Customers",
-      "description": "View and search buyers who have completed orders."
     },
     {
       "name": "Webhooks",

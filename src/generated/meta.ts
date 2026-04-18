@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-17T07:21:09.707Z
-// sha256: 4a49dcb937329d43f9eed94c502019a19a307cf9ac5178c7dba28498cfa78ac3
+// generated_at: 2026-04-18T09:00:23.341Z
+// sha256: 4ec724479781d9c0af74b4a0c3c0a527bdedabb0f1444feef9fdb39944b4bcbb
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -21,23 +21,35 @@ export interface ToolMeta {
 }
 
 export const meta: Record<string, ToolMeta> = {
-  bootstrap_complete: {
-    operationId: "bootstrap_complete",
+  api_key_self_revoke: {
+    operationId: "api_key_self_revoke",
     method: "POST",
-    path: "/v1/bootstrap/complete",
-    description: "Generates an API key on the verified session. Idempotent — calling again with the same session within 10 minutes returns the same key. Store the key immediately. Use as Authorization: Bearer lb_...",
+    path: "/v1/api-keys/self-revoke",
+    description: "Self-revokes the API key in the Authorization header. Does not list or affect other keys on the account. Idempotent — already-revoked keys return 200. No rate limit.",
     annotations: {
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       openWorldHint: false,
       readOnlyHint: false,
     },
   },
+  bootstrap_poll: {
+    operationId: "bootstrap_poll",
+    method: "GET",
+    path: "/v1/bootstrap/{account_id}",
+    description: "Polling endpoint. Returns ready=true once charges_enabled; actions[] surfaces what's still blocking. Poll every 30 seconds after handing the Stripe onboarding URL to the human. Give up after 15 minutes.",
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      readOnlyHint: true,
+    },
+  },
   bootstrap_start: {
     operationId: "bootstrap_start",
     method: "POST",
-    path: "/v1/bootstrap",
-    description: "Sends a one-time passcode to the provided email address. Returns a session ID for step 2 (bootstrap_verify). Human must check their email for the 6-digit code. Flow: bootstrap_start → bootstrap_verify → bootstrap_complete.",
+    path: "/v1/bootstrap/start",
+    description: "Step 1 of 2. Emails an OTP and returns a single-use bootstrap_token plus the account_id. Token TTL 10 min. Flow: bootstrap_start → bootstrap_verify. No API key required.",
     annotations: {
       destructiveHint: false,
       idempotentHint: false,
@@ -49,7 +61,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "bootstrap_verify",
     method: "POST",
     path: "/v1/bootstrap/verify",
-    description: "Verifies the OTP. On success, creates an account if new email. Returns session ID for step 3 (bootstrap_complete).",
+    description: "Step 2 of 2. Verifies the OTP, issues the first API key (shown once — store immediately), and returns Stripe onboarding URL. Hand the Stripe URL to the human; poll bootstrap_poll until ready.",
     annotations: {
       destructiveHint: false,
       idempotentHint: false,
@@ -61,17 +73,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "create_listing",
     method: "POST",
     path: "/v1/listings",
-    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields. Fulfillment is implicit: attach deliverables for auto-delivery, set fulfillment_url for agent callback, or handle via webhooks. No content_type field needed.",
-    annotations: {
-      destructiveHint: false,
-      readOnlyHint: false,
-    },
-  },
-  create_webhook: {
-    operationId: "create_webhook",
-    method: "POST",
-    path: "/v1/webhooks",
-    description: "Create a webhook endpoint. Specify the URL and which events to receive. The webhook secret (whsec_ prefixed) is returned for signature verification.",
+    description: "Create a new listing for sale. Returns a checkout URL and readiness status. Only name and price are required — but listings with rich content convert significantly better. Fill in as many fields as you can: description, tagline, highlights, badges, reviews, faqs, cta, cover_url. Write salesy, compelling copy. The product page buyers see is built entirely from these fields. Fulfillment mode is determined automatically: set deliverable for managed auto-delivery (STATIC), or set agent_callback_url for async agent-driven fulfillment (ASYNC). No content_type field needed. signing_secret is optional — auto-generated if omitted (use it to verify callback payloads from this listing). metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars — Stripe-aligned limits).",
     annotations: {
       destructiveHint: false,
       readOnlyHint: false,
@@ -97,16 +99,6 @@ export const meta: Record<string, ToolMeta> = {
       readOnlyHint: false,
     },
   },
-  delete_webhook: {
-    operationId: "delete_webhook",
-    method: "DELETE",
-    path: "/v1/webhooks/{webhook_id}",
-    description: "Permanently delete a webhook endpoint. This is irreversible — the webhook and its delivery history cannot be recovered.",
-    annotations: {
-      destructiveHint: true,
-      readOnlyHint: false,
-    },
-  },
   disconnect_stripe: {
     operationId: "disconnect_stripe",
     method: "DELETE",
@@ -121,7 +113,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "fulfill_order",
     method: "POST",
     path: "/v1/orders/{order_id}/fulfill",
-    description: "Fulfill an order. Include deliverables (file/url/text) to deliver digital content via ListBee — creates an access grant and emails the buyer. Omit deliverables to mark the order as complete without delivering content (for externally fulfilled orders).",
+    description: "Mark a paid order as fulfilled by providing the deliverable content (single URL or Markdown text). The deliverable is delivered to the buyer via the unlock page and, if configured, the agent_callback_url webhook payload. Omit deliverable to mark the order as complete without delivering content (for externally fulfilled orders). metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars) — useful for correlating agent work (e.g. job_id, generation_run, delivery_ref).",
     annotations: {
       destructiveHint: false,
       readOnlyHint: false,
@@ -132,17 +124,6 @@ export const meta: Record<string, ToolMeta> = {
     method: "GET",
     path: "/v1/account",
     description: "Returns account profile, stats, and operational readiness. readiness.operational is false until all required actions are resolved. Each action in readiness.actions has:   code — what's needed (e.g. connect_stripe)   kind — \"api\" (you can fix it) or \"human\" (user must act)   resolve — exactly how to fix it (method + endpoint or URL)   docs — documentation link for this action readiness.next is the highest-priority action code — resolve it first.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: true,
-    },
-  },
-  get_customer: {
-    operationId: "get_customer",
-    method: "GET",
-    path: "/v1/customers/{customer_id}",
-    description: "Get a customer by ID. Shows total orders, total spent, currency, and purchase dates. Customers represent unique buyer emails that have purchased from the seller.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
@@ -171,17 +152,6 @@ export const meta: Record<string, ToolMeta> = {
       readOnlyHint: true,
     },
   },
-  list_customers: {
-    operationId: "list_customers",
-    method: "GET",
-    path: "/v1/customers",
-    description: "List all customers (buyers) who have purchased from the seller. Auto-populated from orders — no manual creation needed. Sorted by most recent purchase first. Filter by email for exact match lookup.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: true,
-    },
-  },
   list_listings: {
     operationId: "list_listings",
     method: "GET",
@@ -204,26 +174,16 @@ export const meta: Record<string, ToolMeta> = {
       readOnlyHint: true,
     },
   },
-  list_webhook_events: {
-    operationId: "list_webhook_events",
-    method: "GET",
-    path: "/v1/webhooks/{webhook_id}/events",
-    description: "List recent events for a webhook. Shows delivery status, attempts, and errors. Useful for debugging failed deliveries.",
+  order_redeliver: {
+    operationId: "redeliver_order",
+    method: "POST",
+    path: "/v1/orders/{order_id}/redeliver",
+    description: "Requeue order.paid (and order.fulfilled if applicable) to the listing's agent_callback_url with attempt=1, no initial delay. Rate limited: 10/hour/order, 100/hour/api-key. Pass an Idempotency-Key header to dedupe within 24h. Responds 202 with scheduled_attempts count. Zero means the listing has no agent_callback_url — agent should poll /v1/orders or /v1/events instead.",
     annotations: {
       destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: true,
-    },
-  },
-  list_webhooks: {
-    operationId: "list_webhooks",
-    method: "GET",
-    path: "/v1/webhooks",
-    description: "List all webhooks for the account. Shows URL, events filter, and enabled status.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
     },
   },
   publish_listing: {
@@ -247,38 +207,6 @@ export const meta: Record<string, ToolMeta> = {
       readOnlyHint: false,
     },
   },
-  remove_deliverables: {
-    operationId: "remove_deliverables",
-    method: "DELETE",
-    path: "/v1/listings/{listing_id}/deliverables",
-    description: "Remove all deliverables from a listing. This is irreversible — the files and delivery configuration cannot be recovered. The listing switches to external fulfillment (webhook or agent callback).",
-    annotations: {
-      destructiveHint: true,
-      readOnlyHint: false,
-    },
-  },
-  retry_webhook_event: {
-    operationId: "retry_webhook_event",
-    method: "POST",
-    path: "/v1/webhooks/{webhook_id}/events/{event_id}/retry",
-    description: "Retry delivery of a failed webhook event. Resets attempt counter.",
-    annotations: {
-      destructiveHint: false,
-      openWorldHint: true,
-      readOnlyHint: false,
-    },
-  },
-  set_deliverables: {
-    operationId: "set_deliverables",
-    method: "PUT",
-    path: "/v1/listings/{listing_id}/deliverables",
-    description: "Set digital deliverables (files, URLs, or text) on a listing. Listings with deliverables auto-deliver to buyers on purchase.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: false,
-    },
-  },
   start_stripe_connect: {
     operationId: "start_stripe_connect",
     method: "POST",
@@ -286,17 +214,6 @@ export const meta: Record<string, ToolMeta> = {
     description: "Start Stripe Connect onboarding. Returns a URL for the human to complete in a browser. Required before selling through Stripe.",
     annotations: {
       destructiveHint: false,
-      readOnlyHint: false,
-    },
-  },
-  test_webhook: {
-    operationId: "test_webhook",
-    method: "POST",
-    path: "/v1/webhooks/{webhook_id}/test",
-    description: "Send a test event to the webhook URL. Returns the delivery result. Use this to verify webhook configuration before going live.",
-    annotations: {
-      destructiveHint: false,
-      openWorldHint: true,
       readOnlyHint: false,
     },
   },
@@ -315,32 +232,10 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "update_listing",
     method: "PUT",
     path: "/v1/listings/{listing_id}",
-    description: "Update listing fields. Returns updated listing with readiness.",
+    description: "Update listing fields. Returns updated listing with readiness. To rotate the signing secret, include `signing_secret` in the request body: set to `null` to auto-generate a new secret, or provide a custom string. When rotation occurs, the response object is `listing_with_secret` and includes the full new `signing_secret` once.",
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
-      readOnlyHint: false,
-    },
-  },
-  update_webhook: {
-    operationId: "update_webhook",
-    method: "PUT",
-    path: "/v1/webhooks/{webhook_id}",
-    description: "Update a webhook endpoint URL, name, or subscribed events. Only provided fields are changed. Use POST /v1/webhooks/{webhook_id}/test to verify the updated endpoint receives events correctly.",
-    annotations: {
-      destructiveHint: false,
-      idempotentHint: true,
-      readOnlyHint: false,
-    },
-  },
-  upload_file: {
-    operationId: "upload_file",
-    method: "POST",
-    path: "/v1/files",
-    description: "Upload a file and receive a token for use in deliverables.",
-    annotations: {
-      destructiveHint: false,
-      openWorldHint: true,
       readOnlyHint: false,
     },
   },

@@ -2,7 +2,7 @@
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=listbee&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22listbee-mcp%22%5D%2C%22env%22%3A%7B%22LISTBEE_API_KEY%22%3A%22%24%7Binput%3AapiKey%7D%22%7D%7D)
 
-MCP server for ListBee — commerce API for AI agents.
+MCP server for ListBee — commerce API for AI agents. 20 tools.
 
 ---
 
@@ -16,43 +16,44 @@ MCP server for ListBee — commerce API for AI agents.
 
 ## Golden Path
 
-Four calls to go from zero to a live, selling product page:
+Three calls to go from zero to a live, selling product page:
 
 ```
-create_listing    →  set_deliverables  →  get_listing  →  publish_listing
-  name, price         file/url/text        check status     go live
+create_listing    →  get_listing  →  publish_listing
+  name, price        check status     go live
 ```
 
-**1. Create**
+**1. Create** — set `deliverable` for managed auto-delivery, or `agent_callback_url` for async agent fulfillment
 ```json
-{ "name": "50 Cold Outreach Templates", "price": 1900 }
+{
+  "name": "50 Cold Outreach Templates",
+  "price": 1900,
+  "deliverable": { "type": "url", "value": "https://cdn.example.com/templates.zip" }
+}
 ```
 
-**2. Set deliverables** — attach what buyers receive after payment
-```json
-{ "deliverables": [{ "type": "url", "value": "https://...", "label": "Download" }] }
-```
+**2. Inspect readiness** — `get_listing` tells you what's missing and how to fix it
 
-**3. Inspect readiness** — `get_listing` tells you what's missing and how to fix it
-
-**4. Publish** — `publish_listing` makes the product page live
+**3. Publish** — `publish_listing` makes the product page live
 
 ---
 
 ## Bootstrap (no API key)
 
-Don't have a ListBee account yet? Start the MCP server without a key — it exposes 3 bootstrap tools for account creation:
+Don't have a ListBee account yet? Start the MCP server without a key — it exposes bootstrap tools for account creation:
 
 ```
-bootstrap_start    →  bootstrap_verify  →  bootstrap_complete
-  send OTP email       verify 6-digit       get API key
+bootstrap_start  →  bootstrap_verify
+  send OTP email     verify 6-digit → get API key + Stripe onboarding URL
 ```
 
 ```bash
 npx -y listbee-mcp   # no --api-key needed
 ```
 
-`bootstrap_complete` returns `{ account_id, api_key }`. Store the key immediately, then restart the MCP session with `--api-key lb_...` to unlock all tools.
+`bootstrap_verify` returns `{ account_id, api_key, stripe_onboarding_url }`. Store the key immediately, then restart the MCP session with `--api-key lb_...` to unlock all tools.
+
+After restarting with the key, call `bootstrap_poll` to check whether Stripe Connect onboarding is complete before creating listings.
 
 For the HTTP transport, sessions initialized without a `Bearer` header are automatically bootstrap-only. After bootstrap, open a new session with the key to access the full tool set.
 
@@ -167,33 +168,31 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 
 ## Tools
 
-### Bootstrap (no API key required)
+### Bootstrap (no API key required for start + verify)
 
 | Tool | Description |
 |------|-------------|
-| `bootstrap_start` | Send a one-time passcode to an email address. Step 1 of 3 for account creation. |
-| `bootstrap_verify` | Verify the OTP from email. Step 2 of 3. |
-| `bootstrap_complete` | Get the API key for the new account. Step 3 of 3. Store immediately. |
+| `bootstrap_start` | Send a one-time passcode to an email address. Step 1 of 2 for account creation. |
+| `bootstrap_verify` | Verify the OTP from email. Issues the API key and Stripe onboarding URL. Step 2 of 2. Store the key immediately. |
+| `bootstrap_poll` | Poll Stripe Connect onboarding readiness. Returns `ready=true` once charges are enabled. Requires API key. |
 
 ### Account
 
 | Tool | Description |
 |------|-------------|
 | `get_account` | Get the account's full state including readiness and billing status. |
-| `update_account` | Update account-level settings (GA tracking, notification preferences). |
+| `update_account` | Update account-level settings (display name, bio, avatar, GA tracking, events callback URL). |
 | `delete_account` | Permanently delete the account and all data. Irreversible. |
 
 ### Listings
 
 | Tool | Description |
 |------|-------------|
-| `create_listing` | Create a new listing for sale. Returns checkout URL and readiness. |
+| `create_listing` | Create a new listing for sale. Set `deliverable` for managed delivery or `agent_callback_url` for async agent fulfillment. Returns checkout URL and readiness. |
 | `get_listing` | Get full listing state including readiness. Call after every change. |
-| `update_listing` | Update title, price, or other listing details. |
+| `update_listing` | Update title, price, deliverable, or other listing details. |
 | `list_listings` | List all listings for the current account. |
 | `publish_listing` | Publish a listing so buyers can access the product page. |
-| `set_deliverables` | Attach digital content (file, URL, or text) for automatic delivery. |
-| `remove_deliverables` | Remove deliverables to switch to external fulfillment. Draft only. |
 | `delete_listing` | Permanently delete a listing. |
 
 ### Orders
@@ -201,34 +200,10 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 | Tool | Description |
 |------|-------------|
 | `list_orders` | See all sales and order status. |
-| `get_order` | Get full order details including buyer info and payment. |
-| `fulfill_order` | Push digital content to a buyer or mark as fulfilled (external fulfillment). |
+| `get_order` | Get full order details including buyer info, payment, and unlock URL. |
+| `fulfill_order` | Push a deliverable to a buyer or mark as fulfilled (external fulfillment). Accepts optional `metadata`. |
 | `refund_order` | Issue a full refund for an order through Stripe. |
-
-### Customers
-
-| Tool | Description |
-|------|-------------|
-| `list_customers` | List all buyers who have purchased. Auto-populated from orders. |
-| `get_customer` | Get a customer by ID — total orders, total spent, purchase history. |
-
-### Webhooks
-
-| Tool | Description |
-|------|-------------|
-| `create_webhook` | Create a webhook endpoint. Returns a `whsec_` secret for signature verification. |
-| `list_webhooks` | List all webhook endpoints for the account. |
-| `update_webhook` | Update a webhook URL or event filter. |
-| `delete_webhook` | Delete a webhook endpoint. Irreversible. |
-| `test_webhook` | Send a test event to verify webhook configuration before going live. |
-| `list_webhook_events` | List recent events for a webhook — delivery status, attempts, errors. |
-| `retry_webhook_event` | Retry delivery of a failed webhook event. |
-
-### Files
-
-| Tool | Description |
-|------|-------------|
-| `upload_file` | Upload a file to ListBee. Accepts a `purpose` parameter: `deliverable` (default, listing content), `cover` (listing image), or `avatar` (account avatar). Returns a file token to use in `set_deliverables`, `create_listing`/`update_listing` (as `cover`), or `update_account` (as `avatar`). |
+| `order_redeliver` | Re-queue `order.paid` / `order.fulfilled` to the listing's `agent_callback_url`. Rate-limited: 10/hour/order. |
 
 ### Stripe
 
@@ -236,6 +211,12 @@ npx -y listbee-mcp --api-key lb_... --tools create_listing,get_listing,publish_l
 |------|-------------|
 | `start_stripe_connect` | Start Stripe Connect onboarding. Returns a URL — the human must open it in a browser. |
 | `disconnect_stripe` | Disconnect the Stripe account from ListBee. |
+
+### API Keys
+
+| Tool | Description |
+|------|-------------|
+| `api_key_self_revoke` | Self-revoke the API key used to authenticate this call. Idempotent. Use when credential is compromised. |
 
 ---
 
@@ -273,9 +254,18 @@ Every listing response includes a `readiness` object that tells you exactly what
   - `human` actions: requires human input (show the `message` and `url`)
 - `readiness.next` — the highest-priority action code to resolve first
 
-**Canonical action codes:** `connect_stripe`, `enable_charges`, `update_billing`, `configure_webhook`, `publish_listing`, `webhook_disabled`
-
 **The pattern:** `create_listing` → `get_listing` → resolve each `api` action → surface `human` actions to the user → `publish_listing` when `publishable` is `true`.
+
+---
+
+## Fulfillment Modes
+
+ListBee supports two fulfillment modes, set at listing creation:
+
+- **Managed (`STATIC`)** — set `deliverable` on the listing. ListBee auto-delivers the content to buyers on payment via an unlock page and email.
+- **Async agent (`ASYNC`)** — set `agent_callback_url` on the listing. ListBee fires a webhook to your agent on payment; your agent calls `fulfill_order` with the generated content.
+
+For `ASYNC` mode, use `order_redeliver` if your callback handler missed an event.
 
 ---
 

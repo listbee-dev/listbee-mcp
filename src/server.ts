@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AnySchema } from "@modelcontextprotocol/sdk/server/zod-compat.js";
-import { z } from "zod";
 import { ListBee } from "listbee";
 
 import { loadManifest, indexManifest } from "./manifest.js";
@@ -10,12 +9,11 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { handlers } from "./handlers.js";
 import type { Handler } from "./handlers.js";
-import { handleUploadFile } from "./handlers/upload-file.js";
 import { handleStripeConnect } from "./handlers/stripe-connect.js";
 import {
   handleBootstrapStart,
   handleBootstrapVerify,
-  handleBootstrapComplete,
+  handleBootstrapPoll,
 } from "./handlers/bootstrap.js";
 
 import { schemas } from "./generated/schemas.js";
@@ -32,7 +30,8 @@ const pkg = JSON.parse(
 
 const SERVER_INSTRUCTIONS = `ListBee is a commerce API for AI agents.
 
-Golden path: create_listing → set_deliverables → get_listing (check readiness) → publish_listing.
+Golden path: create_listing → get_listing (check readiness) → publish_listing.
+Set deliverable on the listing at create time for managed auto-delivery, or set agent_callback_url for async agent fulfillment.
 Always call get_listing after mutations to inspect readiness.
 readiness.sellable tells you if the listing is live.
 readiness.actions lists what's missing — kind:api means you can fix it, kind:human means the user must.
@@ -51,34 +50,22 @@ interface CreateServerOptions {
   toolFilter?: Set<string>;
 }
 
-const BOOTSTRAP_TOOLS = new Set(["bootstrap_start", "bootstrap_verify", "bootstrap_complete"]);
-
-// Manual override for upload_file: the API uses multipart upload but the MCP tool
-// takes a URL + filename and handles the fetch-and-upload server-side.
-const uploadFileSchema = z.object({
-  url: z.string().url().describe(
-    "Public URL of a file to upload. The server fetches this URL — only provide URLs from the user or trusted sources.",
-  ),
-  filename: z.string().optional().describe(
-    "Filename for the uploaded file. If omitted, derived from the URL.",
-  ),
-  purpose: z.enum(["deliverable", "cover", "avatar"]).optional().describe(
-    "File purpose — controls size and MIME limits. 'deliverable' (default, up to 25 MB): listing content. 'cover' (up to 5 MB): listing cover image. 'avatar' (up to 2 MB): store avatar.",
-  ),
-});
+// Bootstrap tools that don't require an API key
+const BOOTSTRAP_TOOLS = new Set(["bootstrap_start", "bootstrap_verify"]);
+// bootstrap_poll requires auth (it reads account readiness)
+const ALL_BOOTSTRAP_TOOL_NAMES = new Set(["bootstrap_start", "bootstrap_verify", "bootstrap_poll"]);
 
 /**
  * Schema map — links tool names to their Zod input schemas (or null for no-input tools).
- * Derived from generated schemas with manual overrides where needed.
+ * Derived from generated schemas with no manual overrides needed (upload_file removed).
  */
 const schemaMap: Record<string, AnySchema | null> = {
   ...schemas,
-  upload_file: uploadFileSchema,
 };
 
 /**
  * Create and configure the MCP server with all tools registered.
- * When apiKey is undefined, only bootstrap tools are registered (no SDK client created).
+ * When apiKey is undefined, only bootstrap tools (start + verify) are registered.
  */
 export function createServer(options: CreateServerOptions): McpServer {
   const baseUrl = options.baseUrl ?? "https://api.listbee.so";
@@ -100,15 +87,11 @@ export function createServer(options: CreateServerOptions): McpServer {
   );
 
   /**
-   * All handlers merged: standard handlers + custom handlers + bootstrap wrappers.
-   * Bootstrap wrappers conform to Handler type (client param ignored).
+   * All handlers merged: standard handlers + bootstrap + stripe-connect.
+   * Bootstrap handlers use baseUrl directly (no SDK client needed for start/verify).
    */
   const allHandlers: Record<string, Handler> = {
     ...handlers,
-    upload_file: handleUploadFile,
-    bootstrap_start: (_c, a) => handleBootstrapStart(baseUrl, a) as Promise<unknown>,
-    bootstrap_verify: (_c, a) => handleBootstrapVerify(baseUrl, a) as Promise<unknown>,
-    bootstrap_complete: (_c, a) => handleBootstrapComplete(baseUrl, a) as Promise<unknown>,
     // start_stripe_connect is handled separately below (custom CallToolResult)
   };
 
@@ -119,10 +102,14 @@ export function createServer(options: CreateServerOptions): McpServer {
       continue;
     }
 
-    const isBootstrap = BOOTSTRAP_TOOLS.has(toolName);
+    const isUnauthBootstrap = BOOTSTRAP_TOOLS.has(toolName);
+    const isBootstrapPoll = toolName === "bootstrap_poll";
 
     // Skip authenticated tools if no client (bootstrap-only mode)
-    if (!isBootstrap && !client) continue;
+    // bootstrap_start and bootstrap_verify work without a key
+    // bootstrap_poll needs a key (authenticates against the issued key)
+    if (!isUnauthBootstrap && !isBootstrapPoll && !client) continue;
+    if (isBootstrapPoll && !client) continue;
 
     const meta = metaIndex.get(toolName);
     if (!meta) {
@@ -151,12 +138,11 @@ export function createServer(options: CreateServerOptions): McpServer {
       continue;
     }
 
-    // Bootstrap tools: special case — handler returns CallToolResult directly, no client needed
-    if (isBootstrap) {
+    // Unauthenticated bootstrap tools (start + verify)
+    if (isUnauthBootstrap) {
       const bootstrapHandlers: Record<string, (args: Record<string, unknown>) => Promise<CallToolResult>> = {
         bootstrap_start: (a) => handleBootstrapStart(baseUrl, a),
         bootstrap_verify: (a) => handleBootstrapVerify(baseUrl, a),
-        bootstrap_complete: (a) => handleBootstrapComplete(baseUrl, a),
       };
       const bootstrapHandler = bootstrapHandlers[toolName];
       if (!bootstrapHandler) continue;
@@ -169,6 +155,22 @@ export function createServer(options: CreateServerOptions): McpServer {
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async (args: any) => bootstrapHandler((args ?? {}) as Record<string, unknown>),
+      );
+      console.error(`  Registered tool: ${title} (${toolName})`);
+      continue;
+    }
+
+    // bootstrap_poll: authenticated but handled via custom fetch (not SDK)
+    if (isBootstrapPoll) {
+      server.registerTool(
+        toolName,
+        {
+          description,
+          annotations,
+          ...(schema ? { inputSchema: schema } : {}),
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async (args: any) => handleBootstrapPoll(baseUrl, options.apiKey, (args ?? {}) as Record<string, unknown>),
       );
       console.error(`  Registered tool: ${title} (${toolName})`);
       continue;
@@ -199,7 +201,11 @@ export function createServer(options: CreateServerOptions): McpServer {
   // Startup validation: every manifest tool must be fully wired
   for (const tool of allTools) {
     const name = tool.name;
-    if (!allHandlers[name] && name !== "start_stripe_connect") {
+    if (
+      !allHandlers[name] &&
+      name !== "start_stripe_connect" &&
+      !ALL_BOOTSTRAP_TOOL_NAMES.has(name)
+    ) {
       throw new Error(
         `Startup validation failed: tool "${name}" has no handler registered`,
       );
