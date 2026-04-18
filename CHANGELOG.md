@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-04-18
+
 ### Added
 - `bootstrap_poll` tool — poll Stripe onboarding readiness after account creation; requires the API key issued by `bootstrap_verify`
 - `api_key_self_revoke` tool — self-revoke the calling API key; use when agent detects credential compromise or user requests invalidation
