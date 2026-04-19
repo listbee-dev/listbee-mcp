@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-04-19
+
+### Changed
+- Regenerated manifest + schemas for listing URL shape change in core (composite `/{id}/{slug?}` on `buy.listbee.so` — dropped redundant `/l/` prefix). `create_listing` hint updated.
+
+## [0.16.0] - 2026-04-18
+
 ### Changed
 - Regenerated schemas for listings rebaseline: `image_url` and `currency` fields added, `DeliverableRequest`/`DeliverableResponse` replaces `Deliverable`, `content` replaces `value` in `DeliverableInputRequest`, `buyable` replaces `sellable` on `ListingReadiness`, listing URLs use composite `/l/{id}/{slug?}` shape.
 - `create_listing` manifest rewritten: new `when_to_use`, hints, description, and `input_example` (includes `currency`, `image_url`, `metadata` example).

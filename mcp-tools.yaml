@@ -111,7 +111,7 @@ tools:
       - "signing_secret is returned ONCE at creation — store it immediately. It's the HMAC key for webhook verification."
       - "Stateless agents: pass your own signing_secret (≥16 chars) in the request so you never need to persist ListBee's generated value."
       - "metadata is your stateless context scratchpad. Up to 50 KB (50 keys × 10,000 chars per value). Flows back in the order.paid webhook; NOT forwarded to Stripe."
-      - "url is a composite /l/{id}/{slug} — safe to share. The slug is derived from name; if name changes later, old slug URLs still work."
+      - "url is a composite /{id}/{slug} on buy.listbee.so — safe to share. The slug is derived from name; if name changes later, old slug URLs still work."
       - "image_url must be agent-hosted https://. ListBee does not fetch, cache, or validate images."
       - "Check readiness.buyable before sharing the URL with buyers. If false, readiness.actions[0] (or readiness.next) tells you how to resolve. kind: human means a human must act (Stripe Connect); kind: api means an agent can resolve it."
       - "checkout_schema max 5 fields (email is always auto-collected alongside). Keep it tight — every field costs conversion."
