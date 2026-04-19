@@ -2607,7 +2607,7 @@
               }
             ],
             "title": "Description",
-            "description": "Full product description shown on the product page. Supports plain text only (no HTML). Improves buyer conversion. Max 5000 chars.",
+            "description": "Product description shown on the product page. Improves buyer conversion. Plain text, max 5000 chars.",
             "examples": [
               "A comprehensive guide to modern SEO techniques."
             ]

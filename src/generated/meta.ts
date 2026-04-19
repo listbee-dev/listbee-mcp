@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-19T20:22:30.130Z
-// sha256: c9f22f2365adb175fac4dfe1242fed1abaf085a842bbecfe7c001b61f1da118c
+// generated_at: 2026-04-19T20:46:02.049Z
+// sha256: c2145862a6f35846bf164d6a4c7536b6af63e0ffe589a233737b6aad6df1e455
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
