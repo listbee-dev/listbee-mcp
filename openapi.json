@@ -8,8 +8,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8000/_api",
-      "description": "API server"
+      "url": "https://api.listbee.so",
+      "description": "Production API"
     }
   ],
   "paths": {
@@ -2607,7 +2607,7 @@
               }
             ],
             "title": "Description",
-            "description": "Product description shown on the product page. Improves buyer conversion. Plain text, max 5000 chars.",
+            "description": "Full product description shown on the product page. Supports plain text only (no HTML). Improves buyer conversion. Max 5000 chars.",
             "examples": [
               "A comprehensive guide to modern SEO techniques."
             ]
