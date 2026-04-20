@@ -21,6 +21,11 @@
         "summary": "Get account",
         "description": "Account status and readiness. Check readiness.operational \u2014 if false, readiness.actions lists what's needed. readiness.next is the highest-priority action.",
         "operationId": "get_account",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -42,12 +47,35 @@
               }
             }
           }
-        },
+        }
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Delete account",
+        "description": "Permanently delete the authenticated account. PII is anonymized, API keys revoked, webhooks disabled. Order history is retained for accounting. This action is irreversible.",
+        "operationId": "delete_account",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Invalid or missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
       },
       "put": {
         "tags": [
@@ -56,15 +84,44 @@
         "summary": "Update account",
         "description": "Update account settings: ga_measurement_id (Google Analytics tracking on checkout pages), notify_orders (email notifications for new orders), and events_callback_url (optional account-level webhook). Returns the updated account with readiness \u2014 check readiness.operational to verify the account can accept payments.",
         "operationId": "update_account",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateAccountRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -97,40 +154,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Delete account",
-        "description": "Permanently delete the authenticated account. PII is anonymized, API keys revoked, webhooks disabled. Order history is retained for accounting. This action is irreversible.",
-        "operationId": "delete_account",
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Invalid or missing API key.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/api-keys/self-revoke": {
@@ -141,6 +165,35 @@
         "summary": "Self-revoke the calling API key",
         "description": "Revoke the API key in the Authorization header. Use this when an agent detects a credential compromise and must destroy its own authorization without waiting on a human. No rate limit \u2014 agents must be able to call this freely under attack. Does not touch any other key on the account.",
         "operationId": "api_key_self_revoke",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
+          }
+        ],
         "responses": {
           "202": {
             "description": "Successful Response",
@@ -161,13 +214,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/events": {
@@ -328,6 +386,30 @@
         "security": [
           {
             "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "requestBody": {
@@ -588,6 +670,28 @@
               "title": "Listing Id"
             },
             "description": "Listing ID (lst_ prefixed). Returned as `id` on listing objects."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "requestBody": {
@@ -744,6 +848,28 @@
               "title": "Listing Id"
             },
             "description": "Listing ID (lst_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "responses": {
@@ -827,6 +953,28 @@
               "title": "Listing Id"
             },
             "description": "Listing ID (lst_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "responses": {
@@ -900,6 +1048,28 @@
               "title": "Listing Id"
             },
             "description": "Listing ID (lst_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "responses": {
@@ -1247,6 +1417,28 @@
               "title": "Order Id"
             },
             "description": "Order ID (ord_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "responses": {
@@ -1320,6 +1512,28 @@
               "title": "Order Id"
             },
             "description": "Order ID (ord_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "responses": {
@@ -1396,6 +1610,28 @@
               "title": "Order Id"
             },
             "description": "Order ID (ord_ prefixed)."
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
           }
         ],
         "requestBody": {
@@ -1476,6 +1712,35 @@
         "summary": "Start Stripe Connect onboarding",
         "description": "Start Stripe Connect guided onboarding. Returns a URL to redirect the human to. The human completes Stripe's identity and bank account verification flow. On completion, Stripe fires an account.updated webhook and ListBee marks the account as connected. The stripe_account_id is saved immediately \u2014 payment_config is set only after webhook confirmation.",
         "operationId": "start_stripe_connect",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422.",
+              "examples": [
+                "550e8400-e29b-41d4-a716-446655440000"
+              ],
+              "title": "Idempotency-Key"
+            },
+            "description": "Unique string to make this request idempotent. We recommend a v4 UUID. Same key within 24 hours returns the cached response. Reusing a key with a different request body returns 422."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1496,13 +1761,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/account/stripe": {
@@ -2776,8 +3046,15 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "propertyNames": {
+                  "maxLength": 40
+                },
+                "type": "object",
+                "maxProperties": 50
               },
               {
                 "type": "null"
@@ -3095,8 +3372,15 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "propertyNames": {
+                  "maxLength": 40
+                },
+                "type": "object",
+                "maxProperties": 50
               },
               {
                 "type": "null"
@@ -3269,7 +3553,9 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "type": "string"
+                },
                 "type": "object"
               },
               {
@@ -3596,7 +3882,9 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "type": "string"
+                },
                 "type": "object"
               },
               {
@@ -4424,7 +4712,9 @@
             ]
           },
           "metadata": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "type": "string"
+            },
             "type": "object",
             "title": "Metadata",
             "description": "Arbitrary key-value pairs attached to this order. Stripe-aligned limits: max 50 keys, keys \u2264 40 chars, values must be strings \u2264 500 chars.",
@@ -4892,6 +5182,21 @@
             ],
             "title": "Errors",
             "description": "Per-field validation errors. Populated on 422 responses when a request body fails validation. Null for other problem types."
+          },
+          "retry_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry After",
+            "description": "Recommended wait time in seconds before retrying this request. Populated on 429 rate-limit responses. Also sent as the Retry-After HTTP header.",
+            "examples": [
+              30
+            ]
           }
         },
         "type": "object",
@@ -5391,8 +5696,15 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "additionalProperties": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "propertyNames": {
+                  "maxLength": 40
+                },
+                "type": "object",
+                "maxProperties": 50
               },
               {
                 "type": "null"
