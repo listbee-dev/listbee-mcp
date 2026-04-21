@@ -101,28 +101,32 @@ tools:
     description: >
       Create a live, buyable listing in one call. Returns the checkout URL and a
       one-time signing_secret that you must store (subsequent reads don't expose it).
-      The agent supplies deliverable for instant delivery (STATIC — ListBee sends
-      the URL/text at order.paid), or leaves it null for agent-driven fulfillment
-      (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or leave
-      empty and fulfill externally). fulfillment_mode is computed automatically
+      The agent supplies deliverable for instant delivery (MANAGED — ListBee sends
+      the hosted file / URL / text at order.paid), or leaves it null for agent-driven
+      fulfillment (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or
+      leave empty and fulfill externally). fulfillment_mode is computed automatically
       from deliverable presence; do not send it. Only name and price are required;
       provide rich description/tagline/highlights/faqs for better conversion.
+      Upload images via POST /v1/files first, then pass the fil_ ID as cover_image_file_id.
     hints:
       - "signing_secret is returned ONCE at creation — store it immediately. It's the HMAC key for webhook verification."
       - "Stateless agents: pass your own signing_secret (≥16 chars) in the request so you never need to persist ListBee's generated value."
       - "metadata is your stateless context scratchpad. Up to 50 KB (50 keys × 10,000 chars per value). Flows back in the order.paid webhook; NOT forwarded to Stripe."
       - "url is a composite /{id}/{slug} on buy.listbee.so — safe to share. The slug is derived from name; if name changes later, old slug URLs still work."
-      - "image_url must be agent-hosted https://. ListBee does not fetch, cache, or validate images."
+      - "Upload cover images via POST /v1/files (type=public_asset), then pass the fil_ ID as cover_image_file_id."
       - "Check readiness.buyable before sharing the URL with buyers. If false, readiness.actions[0] (or readiness.next) tells you how to resolve. kind: human means a human must act (Stripe Connect); kind: api means an agent can resolve it."
       - "checkout_schema max 5 fields (email is always auto-collected alongside). Keep it tight — every field costs conversion."
-      - "Pass deliverable for STATIC delivery (ListBee sends at paid). Leave null for ASYNC (agent fulfills via POST /v1/orders/{order_id}/fulfill)."
+      - "Pass deliverable for MANAGED delivery (ListBee sends at paid). Three types: hosted_file (upload via /v1/files first), external_url, text_content. Leave null for ASYNC (agent fulfills via POST /v1/orders/{order_id}/fulfill)."
     input_example:
       name: "50 Cold Outreach Templates"
       price: 1900
       currency: "usd"
       tagline: "Battle-tested templates that book meetings"
       description: "50 proven cold outreach templates used by 500+ SDRs. Each template includes subject line, body, and follow-up sequence. Average 45% open rate."
-      image_url: "https://my-cdn.example.com/covers/cold-outreach.jpg"
+      cover_image_file_id: "fil_7kQ2xY9mN3pR5tW1vB8a"
+      deliverable:
+        type: "hosted_file"
+        file_id: "fil_9xM4kP7nR2qT5wY1vB8a"
       highlights:
         - "50 ready-to-send templates"
         - "45% average open rate"
@@ -252,25 +256,26 @@ tools:
     annotations:
       readOnlyHint: false
       destructiveHint: false
-    when_to_use: "Use when you need to deliver digital content to a buyer after purchase, or close out an order as complete."
+    when_to_use: "Use when you need to deliver digital content to a buyer after purchase."
     description: >
-      Mark a paid order as fulfilled by providing the deliverable content (single
-      URL or Markdown text). The deliverable is delivered to the buyer via the
-      unlock page and, if configured, the agent_callback_url webhook payload.
-      Omit deliverable to mark the order as complete without delivering content
-      (for externally fulfilled orders).
+      Mark a paid order as fulfilled by providing the deliverable content.
+      Three deliverable types: hosted_file (pass file_id from POST /v1/files),
+      external_url (buyer redirected), text_content (rendered markdown).
+      The deliverable is delivered to the buyer via the unlock page and,
+      if configured, the agent_callback_url webhook payload.
       metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars) —
       useful for correlating agent work (e.g. job_id, generation_run, delivery_ref).
     hints:
       - "Only works on orders in PAID state"
       - "Fires order.fulfilled event to agent_callback_url if configured"
-      - "deliverable is optional — omit for close-out without content delivery"
+      - "deliverable is required — three types: hosted_file (file_id), external_url (url), text_content (text)"
+      - "For hosted_file, upload via POST /v1/files first, then pass the fil_ ID"
       - "metadata persists on the order and is visible in get_order responses"
     input_example:
       order_id: "ord_9xM4kP7nR2qT5wY1"
       deliverable:
-        type: "text"
-        value: "Your personalized horoscope reading..."
+        type: "text_content"
+        text: "Your personalized horoscope reading..."
 
   - type: operation
     operation_id: refund_order
@@ -447,6 +452,39 @@ tools:
       - "This invalidates ONLY the key used to make this call — not other keys on the account"
       - "After calling this, the current MCP session loses authentication — inform the human"
       - "To issue a new key, the human must use the console (console.listbee.so)"
+
+  # --- Files ---
+  - type: operation
+    operation_id: upload_file
+    name: upload_file
+    category: files
+    priority: 8
+    status: active
+    annotations:
+      readOnlyHint: false
+      destructiveHint: false
+      idempotentHint: false
+      openWorldHint: true
+    when_to_use: >
+      Use when the agent needs to upload a cover image, gallery image, or
+      downloadable deliverable file. Supports two modes: multipart binary upload,
+      or JSON with source_url for server-side import (ideal for AI-generated
+      images from DALL-E, Midjourney URLs, etc.).
+    description: >
+      Upload a file for use as cover image (public_asset) or downloadable
+      deliverable (private_deliverable). Returns a fil_ prefixed ID to pass
+      to create_listing or update_listing. Two modes: multipart form upload
+      with file + type query param, or JSON body with {type, source_url} for
+      server-side import. Public assets get a CDN URL in the response.
+    hints:
+      - "For cover/gallery images: type=public_asset (10 MB limit, image/* only)"
+      - "For downloadable deliverables: type=private_deliverable (500 MB limit, pdf/zip/epub/images/text)"
+      - "JSON mode with source_url is ideal for AI-generated images — ListBee fetches server-side"
+      - "source_url must use https://"
+      - "After upload, pass the fil_ ID to create_listing as cover_image_file_id, gallery_file_ids, or deliverable.file_id"
+    input_example:
+      type: "public_asset"
+      source_url: "https://oaidalleapiprodscus.blob.core.windows.net/private/generated-image.png"
 
   # --- Future composite tools (v2+) ---
   # - type: composite
