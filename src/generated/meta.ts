@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-21T08:09:21.253Z
-// sha256: f9e5176edde818529e27159768a5ee9be22b8b1a9816821ce13e10461add31f4
+// generated_at: 2026-04-21T20:45:56.079Z
+// sha256: 4100ad758ad144ae45e49ebedce55f44e0a048d9d7d6d5fd6ead6433caf52bb9
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -73,7 +73,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "create_listing",
     method: "POST",
     path: "/v1/listings",
-    description: "Create a live, buyable listing in one call. Returns the checkout URL and a one-time signing_secret that you must store (subsequent reads don't expose it). The agent supplies deliverable for instant delivery (STATIC — ListBee sends the URL/text at order.paid), or leaves it null for agent-driven fulfillment (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or leave empty and fulfill externally). fulfillment_mode is computed automatically from deliverable presence; do not send it. Only name and price are required; provide rich description/tagline/highlights/faqs for better conversion.",
+    description: "Create a live, buyable listing in one call. Returns the checkout URL and a one-time signing_secret that you must store (subsequent reads don't expose it). The agent supplies deliverable for instant delivery (MANAGED — ListBee sends the hosted file / URL / text at order.paid), or leaves it null for agent-driven fulfillment (ASYNC — you call POST /v1/orders/{order_id}/fulfill after paid, or leave empty and fulfill externally). fulfillment_mode is computed automatically from deliverable presence; do not send it. Only name and price are required; provide rich description/tagline/highlights/faqs for better conversion. Upload images via POST /v1/files first, then pass the fil_ ID as cover_image_file_id.",
     annotations: {
       destructiveHint: false,
       readOnlyHint: false,
@@ -113,7 +113,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "fulfill_order",
     method: "POST",
     path: "/v1/orders/{order_id}/fulfill",
-    description: "Mark a paid order as fulfilled by providing the deliverable content (single URL or Markdown text). The deliverable is delivered to the buyer via the unlock page and, if configured, the agent_callback_url webhook payload. Omit deliverable to mark the order as complete without delivering content (for externally fulfilled orders). metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars) — useful for correlating agent work (e.g. job_id, generation_run, delivery_ref).",
+    description: "Mark a paid order as fulfilled by providing the deliverable content. Three deliverable types: hosted_file (pass file_id from POST /v1/files), external_url (buyer redirected), text_content (rendered markdown). The deliverable is delivered to the buyer via the unlock page and, if configured, the agent_callback_url webhook payload. metadata accepts a free-form dict (max 50 keys; key ≤ 40 chars, value ≤ 500 chars) — useful for correlating agent work (e.g. job_id, generation_run, delivery_ref).",
     annotations: {
       destructiveHint: false,
       readOnlyHint: false,
@@ -236,6 +236,18 @@ export const meta: Record<string, ToolMeta> = {
     annotations: {
       destructiveHint: false,
       idempotentHint: true,
+      readOnlyHint: false,
+    },
+  },
+  upload_file: {
+    operationId: "upload_file",
+    method: "POST",
+    path: "/v1/files",
+    description: "Upload a file for use as cover image (public_asset) or downloadable deliverable (private_deliverable). Returns a fil_ prefixed ID to pass to create_listing or update_listing. Two modes: multipart form upload with file + type query param, or JSON body with {type, source_url} for server-side import. Public assets get a CDN URL in the response.",
+    annotations: {
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
       readOnlyHint: false,
     },
   },

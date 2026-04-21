@@ -15,7 +15,9 @@ import {
   handleBootstrapVerify,
   handleBootstrapPoll,
 } from "./handlers/bootstrap.js";
+import { handleUploadFile } from "./handlers/files.js";
 
+import { z } from "zod";
 import { schemas } from "./generated/schemas.js";
 
 // Read version from package.json
@@ -57,10 +59,19 @@ const ALL_BOOTSTRAP_TOOL_NAMES = new Set(["bootstrap_start", "bootstrap_verify",
 
 /**
  * Schema map — links tool names to their Zod input schemas (or null for no-input tools).
- * Derived from generated schemas with no manual overrides needed (upload_file removed).
+ * upload_file is added manually since it uses JSON source_url mode only for MCP
+ * (multipart not supported in MCP protocol).
  */
 const schemaMap: Record<string, AnySchema | null> = {
   ...schemas,
+  upload_file: z.object({
+    type: z.enum(["public_asset", "private_deliverable"]).describe(
+      "File access level: public_asset (cover/gallery images, 10 MB) or private_deliverable (downloadable files, 500 MB).",
+    ),
+    source_url: z.string().max(2048).describe(
+      "HTTPS URL to import. ListBee fetches server-side. Ideal for AI-generated images (DALL-E, Midjourney URLs).",
+    ),
+  }).strict(),
 };
 
 /**
@@ -160,6 +171,23 @@ export function createServer(options: CreateServerOptions): McpServer {
       continue;
     }
 
+    // upload_file: authenticated, uses raw fetch (no SDK files namespace)
+    if (toolName === "upload_file") {
+      if (!client) continue;
+      server.registerTool(
+        toolName,
+        {
+          description,
+          annotations,
+          ...(schema ? { inputSchema: schema } : {}),
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async (args: any) => handleUploadFile(baseUrl, options.apiKey, (args ?? {}) as Record<string, unknown>),
+      );
+      console.error(`  Registered tool: ${title} (${toolName})`);
+      continue;
+    }
+
     // bootstrap_poll: authenticated but handled via custom fetch (not SDK)
     if (isBootstrapPoll) {
       server.registerTool(
@@ -204,6 +232,7 @@ export function createServer(options: CreateServerOptions): McpServer {
     if (
       !allHandlers[name] &&
       name !== "start_stripe_connect" &&
+      name !== "upload_file" &&
       !ALL_BOOTSTRAP_TOOL_NAMES.has(name)
     ) {
       throw new Error(
