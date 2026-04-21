@@ -2,8 +2,8 @@
 // source: openapi.json + mcp-tools.yaml
 // Regenerate with: npm run generate
 // openapi_version: 1.0.0
-// generated_at: 2026-04-19T20:46:02.049Z
-// sha256: c2145862a6f35846bf164d6a4c7536b6af63e0ffe589a233737b6aad6df1e455
+// generated_at: 2026-04-21T07:52:03.421Z
+// sha256: f9e5176edde818529e27159768a5ee9be22b8b1a9816821ce13e10461add31f4
 
 export interface ToolAnnotations {
   readOnlyHint?: boolean;
@@ -25,7 +25,7 @@ export const meta: Record<string, ToolMeta> = {
     operationId: "api_key_self_revoke",
     method: "POST",
     path: "/v1/api-keys/self-revoke",
-    description: "Self-revokes the API key in the Authorization header. Does not list or affect other keys on the account. Idempotent — already-revoked keys return 200. No rate limit.",
+    description: "Permanently revokes the API key in the Authorization header. This action is irreversible — the key cannot be recovered. Does not list or affect other keys on the account. Idempotent — already-revoked keys return 200. No rate limit.",
     annotations: {
       destructiveHint: true,
       idempotentHint: true,
