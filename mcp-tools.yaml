@@ -439,9 +439,10 @@ tools:
       Destroying the calling API key — use when the agent detects credential
       compromise or the human asks to invalidate the current key.
     description: >
-      Self-revokes the API key in the Authorization header. Does not list or
-      affect other keys on the account. Idempotent — already-revoked keys
-      return 200. No rate limit.
+      Permanently revokes the API key in the Authorization header. This action
+      is irreversible — the key cannot be recovered. Does not list or affect
+      other keys on the account. Idempotent — already-revoked keys return 200.
+      No rate limit.
     hints:
       - "This invalidates ONLY the key used to make this call — not other keys on the account"
       - "After calling this, the current MCP session loses authentication — inform the human"
